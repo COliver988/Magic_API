@@ -7,7 +7,7 @@ public class ProductOverride
 {
     public ProductOverride() { }
     [Column("id")]
-    public long Id { get;set ; }
+    public int Id { get;set ; }
 
     [Column("product_code")]
     public string ProductCode {  get; set; }
@@ -16,5 +16,5 @@ public class ProductOverride
     public string TagOverrde {  get; set; }
 
     [Column("override_type")]
-    public long OverrideType {  get; set; }
+    public int OverrideType {  get; set; }
 }

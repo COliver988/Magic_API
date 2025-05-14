@@ -16,13 +16,13 @@ public class DAPPartnersController : ControllerBase
     }  
 
     // GET: api/<DAPPartnersController>
-    [HttpGet]
+    [HttpGet("ByPO")]
     public async Task<DapPartner?> GetByPO(string po)
     {
         return await _dapPartnersRepository.GetByPO(po);
     }
 
-    [HttpGet]
+    [HttpGet("ByTKref1")]
     public async Task<DapPartner?> GetByTKRef1(string tkref1)
     {
         return await _dapPartnersRepository.GetByTKRef1(tkref1);

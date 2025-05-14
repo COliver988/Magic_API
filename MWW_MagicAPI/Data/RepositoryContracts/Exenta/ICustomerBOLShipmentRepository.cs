@@ -4,5 +4,5 @@ namespace MWW_Api.Repositories.Exenta;
 
 public interface ICustomerBOLShipmentRepository
 {
-    public CustomerBOLShipment? GetByVicsBol(string vicsbolno);
+    public Task<CustomerBOLShipment?> GetByVicsBol(string vicsbolno);
 }

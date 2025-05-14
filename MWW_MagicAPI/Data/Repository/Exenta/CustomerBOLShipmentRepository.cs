@@ -1,4 +1,5 @@
-﻿using MWW_Api.Config;
+﻿using Microsoft.EntityFrameworkCore;
+using MWW_Api.Config;
 using MWW_Api.Models.Exenta;
 
 namespace MWW_Api.Repositories.Exenta;
@@ -13,5 +14,5 @@ public class CustomerBOLShipmentRepository : ICustomerBOLShipmentRepository
         _context = context;
     }
     
-    public CustomerBOLShipment? GetByVicsBol(string vicsbolno) =>  _context.CustomerBOLShipments.Where(c => c.VICSBOLNO == vicsbolno).FirstOrDefault();
+    public async Task<CustomerBOLShipment?> GetByVicsBol(string vicsbolno) => await _context.CustomerBOLShipments.Where(c => c.VICSBOLNO == vicsbolno).FirstOrDefaultAsync();
 }

@@ -4,5 +4,5 @@ namespace MWW_Api.Repositories.Exenta;
 
 public interface IOrderHeaderRepository
 {
-    public OrderHeader? GetByPONum(string po);
+    public Task<OrderHeader?> GetByPONum(string po);
 }

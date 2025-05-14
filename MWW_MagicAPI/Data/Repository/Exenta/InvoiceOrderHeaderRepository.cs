@@ -1,4 +1,5 @@
-﻿using MWW_Api.Config;
+﻿using Microsoft.EntityFrameworkCore;
+using MWW_Api.Config;
 using MWW_Api.Models.Exenta;
 
 namespace MWW_Api.Repositories.Exenta;
@@ -12,8 +13,8 @@ public class InvoiceOrderHeaderRepository : IInvoiceOrderHeaderRepository
         _context = context;
     }
 
-    public InvoiceOrderHeader? GetByOrderNo(int orderNo) => _context.InvoiceOrderHeaders.Where(io => io.ORDERNO == orderNo).FirstOrDefault();
+    public async Task<InvoiceOrderHeader?> GetByOrderNo(int orderNo) => await _context.InvoiceOrderHeaders.Where(io => io.ORDERNO == orderNo).FirstOrDefaultAsync();
 
-    public InvoiceOrderHeader? GetInvoiceDetail(string legacy_vendor_id, string po, string companyCode = "MWW") =>
-        _context.InvoiceOrderHeaders.Where(io => io.CUSTOMER ==  legacy_vendor_id && io.ORDERREFERENCE == po && io.COMPANYCODE == companyCode).FirstOrDefault();
+    public async Task<InvoiceOrderHeader?> GetInvoiceDetail(string legacy_vendor_id, string po, string companyCode = "MWW") =>
+        await _context.InvoiceOrderHeaders.Where(io => io.CUSTOMER ==  legacy_vendor_id && io.ORDERREFERENCE == po && io.COMPANYCODE == companyCode).FirstOrDefaultAsync();
 }
