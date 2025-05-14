@@ -1,0 +1,6 @@
+@MWW_MagicAPI_HostAddress = http://localhost:5062
+
+GET {{MWW_MagicAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
