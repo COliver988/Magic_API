@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using MWW_Api.Config;
+using MWW_Api.Http.Middleware.Health;
 using MWW_Api.Repositories.Exenta;
 using MWW_Api.Repositories.Magic;
+
 
 var configuration = new ConfigurationBuilder()
         .SetBasePath(Directory.GetCurrentDirectory())
@@ -36,6 +39,16 @@ try
     builder.Services.AddDbContext<MagicDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Magic")));
     builder.Services.AddDbContext<ExentaDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Exenta")));
 
+    builder.Services.AddHealthChecks()
+       .AddCheck("Magic DB",
+           new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:Magic")),
+           HealthStatus.Unhealthy,
+           new string[] { "Magic DB", "Database" })
+       .AddCheck("Exenta DB",
+           new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:Exenta")),
+           HealthStatus.Unhealthy,
+           new string[] { "Exenta DB", "Database" });
+
     var app = builder.Build();
 
     // Configure the HTTP request pipeline.
@@ -51,6 +64,21 @@ try
     app.UseAuthorization();
 
     app.MapControllers();
+
+    app.UseHealthChecks("/api/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+    { ResponseWriter = HealthCheckExtensions.WriteResponse });
+    app.MapGet("/health", () =>
+    {
+        var yourData = new
+        {
+            Message = "For API usage, see https://mwwondemand.github.io/#introduction",
+            Time = DateTime.UtcNow
+        };
+
+        return yourData;
+    })
+        .WithName("Health Check")
+        .WithOpenApi();
 
     app.Run();
 }
