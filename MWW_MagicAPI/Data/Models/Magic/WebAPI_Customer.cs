@@ -1,6 +1,6 @@
 namespace MWW_Api.Models.Magic;
 
-public class WebAPI_Customers
+public class WebAPI_Customer
 {
     public string CustID { get; set; }
     public string VenderName { get; set; }

@@ -4,6 +4,8 @@ using MWW_Api.Config;
 using MWW_Api.Http.Middleware.Health;
 using MWW_Api.Repositories.Exenta;
 using MWW_Api.Repositories.Magic;
+using MWW_MagicAPI.Data.Models;
+using MWW_MagicAPI.Services;
 
 
 var configuration = new ConfigurationBuilder()
@@ -38,6 +40,12 @@ try
     // db context
     builder.Services.AddDbContext<MagicDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Magic")));
     builder.Services.AddDbContext<ExentaDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Exenta")));
+
+    // Add configuration from appsettings.json or other sources
+    builder.Services.Configure<AuthSettings>(configuration.GetSection("AuthSettings"));
+
+    // Register your service
+    builder.Services.AddTransient<IAuthService, AuthService>();
 
     builder.Services.AddHealthChecks()
        .AddCheck("Magic DB",

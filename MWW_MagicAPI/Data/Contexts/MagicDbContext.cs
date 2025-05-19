@@ -10,7 +10,7 @@ public class MagicDbContext : DbContext
     public DbSet<ProductOverride> ProductOverrides { get; set; }
     public DbSet<StuckProductionOrders> StuckProductionOrders { get; set; }
     public DbSet<MWW_Applications> MWW_Applications { get; set; }
-    public DbSet<WebAPI_Customers> WebAPI_Customers { get; set; }
+    public DbSet<WebAPI_Customer> WebAPI_Customers { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
