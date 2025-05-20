@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MWW_Api.Models.Exenta;
 using MWW_Api.Repositories.Exenta;
 
@@ -6,6 +7,7 @@ namespace MWW_MagicAPI.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
+[Authorize]
 public class InvoiceControllerHeadersController : ControllerBase
 {
     private readonly IInvoiceOrderHeaderRepository _repo;

@@ -39,6 +39,8 @@ public class AuthService  : IAuthService
             Subject = GenerateClaims(user),
             Expires = DateTime.UtcNow.AddMinutes(_settings.Timeout),
             SigningCredentials = credentials,
+            Audience = _settings.Audience,
+            Issuer = _settings.Issuer,
         };
 
         var token = handler.CreateToken(tokenDescriptor);
