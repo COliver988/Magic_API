@@ -42,10 +42,10 @@ try
     builder.Services.AddDbContext<ExentaDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Exenta")));
 
     // Add configuration from appsettings.json or other sources
-    builder.Services.Configure<AuthSettings>(configuration.GetSection("AuthSettings"));
+    builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("AuthSettings"));
 
     // Register your service
-    builder.Services.AddTransient<IAuthService, AuthService>();
+    builder.Services.AddScoped<IAuthService, AuthService>();
 
     builder.Services.AddHealthChecks()
        .AddCheck("Magic DB",

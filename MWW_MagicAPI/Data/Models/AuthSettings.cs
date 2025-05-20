@@ -2,9 +2,9 @@ namespace MWW_MagicAPI.Data.Models;
 
 public class AuthSettings
 {
-    // provate key
-    public string AuthKey { get; set; } = string.Empty;
+    // private key
+    public string PrivateKey { get; set; }
     
     // minutes to be valid
-    public int Timeout { get; set; } = 15;   
+    public int Timeout { get; set; }
 }

@@ -1,8 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MWW_Api.Models.Magic;
 
+[Keyless]
 public partial class StuckProductionOrders
 {
     public StuckProductionOrders() { }

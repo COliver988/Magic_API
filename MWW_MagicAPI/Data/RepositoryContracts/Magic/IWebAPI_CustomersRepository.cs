@@ -2,8 +2,7 @@
 
 namespace MWW_Api.Repositories.Magic;
 
-public interface IStuckProductionOrderRepository
+public interface IWebAPI_CustomersRepositoruy
 {
-    Task<List<StuckProductionOrders>> GetAll(string? filter, int? pageNumber, int? pageSize);
-    Task<int> GetCount();
+    Task<WebAPI_Customer> GetByEmail(string email);
 }

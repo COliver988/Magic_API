@@ -1,7 +1,7 @@
-using MWW_Api.Models.Magic;
+using MWW_MagicAPI.Data.Models.DTO;
 
 namespace MWW_MagicAPI.Services;
 public interface IAuthService
 {
-     string GenerateToken(WebAPI_Customer user);       
+     Task<string?> GenerateToken(AuthenticationUser user);       
 }

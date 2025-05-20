@@ -16,9 +16,10 @@ public class MagicDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         // Specify the schema for the entity
-        modelBuilder.Entity<DapPartner>().ToTable("DAP_PARTNERS", schema: "dbo");
-        modelBuilder.Entity<ProductOverride>().ToTable("product_overrides", schema: "dbo");
-        modelBuilder.Entity<MWW_Applications>().ToTable("MWW_APPLICATIONS", schema: "dbo");
-        modelBuilder.Entity<StuckProductionOrders>().ToTable("stuck_production_orders", schema: "dbo");
+        modelBuilder.Entity<DapPartner>().ToTable("DAP_PARTNERS", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<ProductOverride>().ToTable("product_overrides", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<MWW_Applications>().ToTable("MWW_APPLICATIONS", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<StuckProductionOrders>().ToTable("stuck_production_orders", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<WebAPI_Customer>().ToTable("WebAPI_Customers", schema: "dbo").HasNoKey();
     }
 }
