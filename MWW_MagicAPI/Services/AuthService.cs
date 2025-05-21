@@ -22,11 +22,11 @@ public class AuthService  : IAuthService
         _mww_ApplicationRepository = mWW_ApplicationRepository;
     }
 
-    public async Task<string> GenerateToken(AuthenticationUser user)
+    public async Task<TokenResponse> GenerateToken(AuthenticationUser user)
     {
         bool validUser = await validateUser(user);
         if (!validUser)
-            return string.Empty;
+            return null;
 
         var handler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(_settings.PrivateKey);
@@ -44,7 +44,12 @@ public class AuthService  : IAuthService
         };
 
         var token = handler.CreateToken(tokenDescriptor);
-        return handler.WriteToken(token);
+        return new TokenResponse()
+        {
+            access_token = handler.WriteToken(token),
+            token_type = "Bearer",
+            expires_in = _settings.Timeout
+        };
     }
 
     // need to validate this user; may be an API to API (MWW_Applications) or user (WebAPI_Customer - future)

@@ -20,11 +20,15 @@ public class Authentication : Controller
         {
             return BadRequest("Invalid client request");
         }
-        string? token = await _authService.GenerateToken(user);
-        if (string.IsNullOrEmpty(token))
-        {
+        TokenResponse? token = await _authService.GenerateToken(user);
+        if (token == null)
             return Unauthorized();
-        }
-        return Ok(new { Token = token });
+        var transformedResponse = new
+        {
+            access_token = token.access_token,
+            token_type = token.token_type,
+            expires_in = token.expires_in
+        };
+        return Ok(transformedResponse);
     }
 }
