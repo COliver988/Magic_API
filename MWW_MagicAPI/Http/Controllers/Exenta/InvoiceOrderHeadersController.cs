@@ -12,7 +12,7 @@ public class InvoiceControllerHeadersController : ControllerBase
 {
     private readonly IInvoiceOrderHeaderRepository _repo;
 
-    public InvoiceControllerHeadersController(IInvoiceOrderHeaderRepository repo)
+    public InvoiceOrderHeadersController(IInvoiceOrderHeaderRepository repo)
     {
         _repo = repo;
     }  
