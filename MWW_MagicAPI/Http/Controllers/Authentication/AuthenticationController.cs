@@ -3,12 +3,12 @@ using MWW_MagicAPI.Data.Models.DTO;
 using MWW_MagicAPI.Services;
 
 namespace MWW_MagicAPI.Http.Controllers.Authentication;
-[Route("[controller]")]
-public class Authentication : Controller
+[Route("api/[controller]")]
+public class AuthenticationController : Controller
 {
     private readonly IAuthService _authService;
 
-    public Authentication( IAuthService authService)
+    public AuthenticationController( IAuthService authService)
     {
         _authService = authService;
     }
