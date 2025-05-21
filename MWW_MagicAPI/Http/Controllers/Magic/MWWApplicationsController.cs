@@ -12,7 +12,7 @@ public class MWWApplicationController : ControllerBase
 {
     private readonly IMWW_ApplicationRepository _applicationRepository;
 
-    public MWWApplicationController(IMWW_ApplicationRepository applicationRepository)
+    public MWWApplicationsController(IMWW_ApplicationRepository applicationRepository)
     {
         _applicationRepository = applicationRepository;
     }  
