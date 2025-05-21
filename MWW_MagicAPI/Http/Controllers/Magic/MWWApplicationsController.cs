@@ -8,7 +8,7 @@ namespace MWW_MagicAPI.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
-public class MWWApplicationController : ControllerBase
+public class MWWApplicationsController : ControllerBase
 {
     private readonly IMWW_ApplicationRepository _applicationRepository;
 

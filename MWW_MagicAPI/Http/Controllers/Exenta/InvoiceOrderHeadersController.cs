@@ -8,7 +8,7 @@ namespace MWW_MagicAPI.Controllers;
 [Route("api/[controller]")]
 [ApiController]
 [Authorize]
-public class InvoiceControllerHeadersController : ControllerBase
+public class InvoiceOrderHeadersController : ControllerBase
 {
     private readonly IInvoiceOrderHeaderRepository _repo;
 
