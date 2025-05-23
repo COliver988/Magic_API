@@ -1,9 +1,14 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.IdentityModel.Tokens;
 using MWW_Api.Config;
 using MWW_Api.Http.Middleware.Health;
 using MWW_Api.Repositories.Exenta;
 using MWW_Api.Repositories.Magic;
+using MWW_MagicAPI.Data.Models;
+using MWW_MagicAPI.Services;
+using System.Text;
 
 
 var configuration = new ConfigurationBuilder()
@@ -39,6 +44,12 @@ try
     builder.Services.AddDbContext<MagicDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Magic")));
     builder.Services.AddDbContext<ExentaDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Exenta")));
 
+    // Add configuration from appsettings.json or other sources
+    builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("AuthSettings"));
+
+    // Register your service
+    builder.Services.AddScoped<IAuthService, AuthService>();
+
     builder.Services.AddHealthChecks()
        .AddCheck("Magic DB",
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:Magic")),
@@ -48,6 +59,23 @@ try
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:Exenta")),
            HealthStatus.Unhealthy,
            new string[] { "Exenta DB", "Database" });
+
+    AuthSettings authSettings = builder.Configuration.GetSection("AuthSettings").Get<AuthSettings>();
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            RequireAudience = false,
+            ValidAudience = authSettings.Audience,
+            ValidIssuer = authSettings.Issuer,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(authSettings.PrivateKey))
+        };
+    });
 
     var app = builder.Build();
 
@@ -61,6 +89,7 @@ try
 
     app.UseHttpsRedirection();
 
+    app.UseAuthentication();
     app.UseAuthorization();
 
     app.MapControllers();
