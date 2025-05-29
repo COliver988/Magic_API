@@ -9,6 +9,7 @@ using MWW_Api.Repositories.Magic;
 using MWW_MagicAPI.Data.Models;
 using MWW_MagicAPI.Services;
 using System.Text;
+using Serilog;
 
 
 var configuration = new ConfigurationBuilder()
@@ -43,9 +44,15 @@ try
     // db context
     builder.Services.AddDbContext<MagicDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Magic")));
     builder.Services.AddDbContext<ExentaDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Exenta")));
+    builder.Services.AddDbContext<SerilogDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Database:Serilog")));
+
 
     // Add configuration from appsettings.json or other sources
     builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("AuthSettings"));
+
+    // logging settings
+    builder.Host.UseSerilog((hostingContext, loggerConfiguration) =>
+       loggerConfiguration.ReadFrom.Configuration(hostingContext.Configuration));
 
     // Register your service
     builder.Services.AddScoped<IAuthService, AuthService>();
