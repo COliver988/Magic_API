@@ -2,6 +2,13 @@
 The Magic API gives API access to various tables in both the Magic and Exenta DBs
 
 Pulled to its own application from Peeps 2.
+## Env variables needed
+CONNECTIONSTRINGS__DATABASE__MAGIC
+
+CONNECTIONSTRINGS__DATABASE__EXENTA
+
+CONNECTIONSTRINGS__DATABASE__SERILOG
+
 
 ## Endpoints
 ### Exenta
