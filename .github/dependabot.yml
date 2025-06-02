@@ -26,3 +26,6 @@ updates:
         versions: ["9.x"]
       - dependency-name: "AspNetCore.HealthChecks.SqlServer"
         versions: ["9.x"]
+      - dependency-name: "Microsoft.EntityFrameworkCore"
+        versions: ["9.x"]        
+        
