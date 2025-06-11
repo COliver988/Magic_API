@@ -14,20 +14,27 @@ public class AuthService  : IAuthService
 {
     private readonly AuthSettings _settings;
     private readonly IMWW_ApplicationRepository _mww_ApplicationRepository;
+    private readonly ILogger<AuthService> _logger;
 
     public AuthService(IOptions<AuthSettings> settings,
-        IMWW_ApplicationRepository mWW_ApplicationRepository)
+        IMWW_ApplicationRepository mWW_ApplicationRepository,
+        ILogger<AuthService> logger)
     {
         _settings = settings.Value;
         _mww_ApplicationRepository = mWW_ApplicationRepository;
+        _logger = logger;
     }
 
     public async Task<TokenResponse> GenerateToken(AuthenticationUser user)
     {
         bool validUser = await validateUser(user);
         if (!validUser)
+        {
+            _logger.LogInformation("Invalid user: {UserName}", user.Name);
             return null;
+        }
 
+        _logger.LogInformation("Valid user: {UserName}", user.Name);
         var handler = new JwtSecurityTokenHandler();
         var key = Encoding.ASCII.GetBytes(_settings.PrivateKey);
         var credentials = new SigningCredentials(
@@ -56,7 +63,7 @@ public class AuthService  : IAuthService
     private async Task<bool> validateUser(AuthenticationUser user)
     {
         MWW_Applications? mWW_Applications = await _mww_ApplicationRepository.GetByName(user.Name);
-        if (mWW_Applications == null || !mWW_Applications.Active)
+        if (mWW_Applications == null || !mWW_Applications.Active || mWW_Applications.EXEName != user.Secret)
             return false;
         return true;
     }
