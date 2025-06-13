@@ -11,7 +11,7 @@ public class MWW_ApplicationRepository : IMWW_ApplicationRepository
     {
         _context = context;
     }
-    public async Task<List<MWW_Applications>> GetActive() => await  _context.MWW_Applications.Where(a => a.Active == true).ToListAsync();
+    public async Task<List<MWW_Applications>> GetActive() => await  _context.MWW_Applications.AsNoTracking().Where(a => a.Active == true).ToListAsync();
 
     public async Task<MWW_Applications?> GetByName(string name) => await _context.MWW_Applications
         .AsNoTracking()
