@@ -28,4 +28,17 @@ updates:
         versions: ["9.x"]
       - dependency-name: "Microsoft.EntityFrameworkCore"
         versions: ["9.x"]        
-        
+      - dependemcy-name: "AspNetCore.HealthChecks.SqlServer"
+        version: ["9.x"]
+      - dependency-name: "Microsoft.EntityFrameworkCore"
+        version: ["9.x"]
+      - dependency-name: "Microsoft.EntityFrameworkCore.SqlServer"
+        version: ["9.x"]
+      - dependency-name: "Npgsql.EntityFrameworkCore.PostgreSQL"
+        version: ["9.x"]
+      - dependency-name: "Serilog.AspNetCore"
+       version: ["9.x"]
+      - dependency-name: "Serilog.Extensions.Hosting"
+        version: ["9.x"]
+      - dependency-name: "Swashbuckle.AspNetCore        
+        version: ["9.x"]
