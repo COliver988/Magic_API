@@ -94,6 +94,7 @@ try
         app.UseDeveloperExceptionPage();
     }
 
+    app.UseHsts();
     app.UseHttpsRedirection();
 
     app.UseAuthentication();
@@ -103,18 +104,10 @@ try
 
     app.UseHealthChecks("/api/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
     { ResponseWriter = HealthCheckExtensions.WriteResponse });
-    app.MapGet("/health", () =>
-    {
-        var yourData = new
-        {
-            Message = "For API usage, see https://mwwondemand.github.io/#introduction",
-            Time = DateTime.UtcNow
-        };
 
-        return yourData;
-    })
-        .WithName("Health Check")
-        .WithOpenApi();
+    Log.Information(builder.Configuration.GetConnectionString("Database:Serilog"));
+    Log.Information(builder.Configuration.GetConnectionString("Database:Magic"));
+    Log.Information(builder.Configuration.GetConnectionString("Database:Exenta"));
 
     app.Run();
 }
