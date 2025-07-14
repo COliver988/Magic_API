@@ -17,11 +17,15 @@ public class ProductOverrideRepository : IProductOverrideRepository
         throw new NotImplementedException();
     }
 
-    public async Task<List<ProductOverride>> GetAll() => await _context.ProductOverrides.ToListAsync();
+    public async Task<List<ProductOverride>> GetAllByOverrideType(int? overrideType)
+    {
+        if (overrideType == 0)
+            return await _context.ProductOverrides.ToListAsync();
+        else
+            return await _context.ProductOverrides.Where(p => p.OverrideType == overrideType).ToListAsync();
+    }
 
-    public async Task<List<ProductOverride>> GetAllByOverrideType(int overrideType) => await _context.ProductOverrides.Where(p => p.OverrideType == overrideType).ToListAsync();
-
-    public Task<ProductOverride>? GetByIdAsync(long id) => _context.ProductOverrides.Where(p => p.Id == id).FirstOrDefaultAsync();
+    public Task<ProductOverride>? GetByIdAsync(int id) => _context.ProductOverrides.Where(p => p.Id == id).FirstOrDefaultAsync();
 
     public async Task<ProductOverride?> GetByProductAndOverrideType(string product, int overrideType) => await _context.ProductOverrides.Where(p => p.OverrideType == overrideType && p.ProductCode == product).FirstOrDefaultAsync();
 
