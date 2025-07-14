@@ -12,6 +12,28 @@ public class ProductOverrideRepository : IProductOverrideRepository
         _context = context;
     }
 
+    public Task Delete(ProductOverride productOverride)
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<List<ProductOverride>> GetAll() => await _context.ProductOverrides.ToListAsync();
+
     public async Task<List<ProductOverride>> GetAllByOverrideType(int overrideType) => await _context.ProductOverrides.Where(p => p.OverrideType == overrideType).ToListAsync();
+
+    public Task<ProductOverride>? GetByIdAsync(long id) => _context.ProductOverrides.Where(p => p.Id == id).FirstOrDefaultAsync();
+
     public async Task<ProductOverride?> GetByProductAndOverrideType(string product, int overrideType) => await _context.ProductOverrides.Where(p => p.OverrideType == overrideType && p.ProductCode == product).FirstOrDefaultAsync();
+
+    /// <summary>
+    /// update or add new record (note: EF will add a new record for update if the Id is not set)
+    /// </summary>
+    /// <param name="productOverride"></param>
+    /// <returns></returns>
+    public async Task<ProductOverride> Update(ProductOverride productOverride)
+    {
+        _context.ProductOverrides.Update(productOverride);
+        await _context.SaveChangesAsync();
+        return productOverride;
+    }
 }
