@@ -29,6 +29,12 @@ public class ProductOverridesController : ControllerBase
         return await _repo.GetByProductAndOverrideType(product, overrideType);
     }
 
+    [HttpGet("ByProduct")]
+    public async Task<List<ProductOverride>> GetByProduct(string product)
+    {
+        return await _repo.GetByProduct(product);
+    }
+
     [HttpGet("ById")]
     public async Task<ProductOverride> GetById(int id)
     {

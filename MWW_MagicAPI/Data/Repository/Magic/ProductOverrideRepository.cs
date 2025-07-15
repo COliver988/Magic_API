@@ -25,6 +25,8 @@ public class ProductOverrideRepository : IProductOverrideRepository
             return await _context.ProductOverrides.Where(p => p.OverrideType == overrideType).ToListAsync();
     }
 
+    public async Task<List<ProductOverride>> GetByProduct(string product) => await _context.ProductOverrides.Where(p => p.ProductCode == product).ToListAsync();
+
     public Task<ProductOverride>? GetByIdAsync(int id) => _context.ProductOverrides.Where(p => p.Id == id).FirstOrDefaultAsync();
 
     public async Task<ProductOverride?> GetByProductAndOverrideType(string product, int overrideType) => await _context.ProductOverrides.Where(p => p.OverrideType == overrideType && p.ProductCode == product).FirstOrDefaultAsync();
