@@ -15,7 +15,7 @@ public class ProductOverridesController : ControllerBase
     public ProductOverridesController(IProductOverrideRepository repo)
     {
         _repo = repo;
-    }  
+    }
 
     [HttpGet("AllByOverrideType")]
     public async Task<List<ProductOverride>> GetAllByOverrideType(int? overrideType)
@@ -29,10 +29,10 @@ public class ProductOverridesController : ControllerBase
         return await _repo.GetByProductAndOverrideType(product, overrideType);
     }
 
-    [HttpGet("ByProduct")]
-    public async Task<List<ProductOverride>> GetByProduct(string product)
+    [HttpGet("ByProductCode")]
+    public async Task<List<ProductOverride>> GetByProduct(string productCode)
     {
-        return await _repo.GetByProduct(product);
+        return await _repo.GetByProduct(productCode);
     }
 
     [HttpGet("ById")]
@@ -49,5 +49,24 @@ public class ProductOverridesController : ControllerBase
             throw new ArgumentNullException(nameof(productOverride), "Product override cannot be null");
         }
         return await _repo.Update(productOverride);
+    }
+
+    [HttpGet("Delete")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        ProductOverride? productOverride = await _repo.GetByIdAsync(id);
+        if (productOverride == null)
+        {
+            return NotFound($"Product override with ID {id} not found.");
+        }
+        try
+        {
+            await _repo.Delete(productOverride);
+            return Ok();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
 }

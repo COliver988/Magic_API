@@ -14,7 +14,13 @@ public class ProductOverrideRepository : IProductOverrideRepository
 
     public Task Delete(ProductOverride productOverride)
     {
-        throw new NotImplementedException();
+        if (productOverride == null)
+        {
+            throw new ArgumentNullException(nameof(productOverride), "Product override cannot be null");
+        }
+
+        _context.ProductOverrides.Remove(productOverride);
+        return _context.SaveChangesAsync();
     }
 
     public async Task<List<ProductOverride>> GetAllByOverrideType(int? overrideType)
