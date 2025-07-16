@@ -26,16 +26,16 @@ public class ProductOverrideRepository : IProductOverrideRepository
     public async Task<List<ProductOverride>> GetAllByOverrideType(int? overrideType)
     {
         if (overrideType == 0)
-            return await _context.ProductOverrides.ToListAsync();
+            return await _context.ProductOverrides.AsNoTracking().ToListAsync();
         else
-            return await _context.ProductOverrides.Where(p => p.OverrideType == overrideType).ToListAsync();
+            return await _context.ProductOverrides.Where(p => p.OverrideType == overrideType).AsNoTracking().ToListAsync();
     }
 
-    public async Task<List<ProductOverride>> GetByProduct(string product) => await _context.ProductOverrides.Where(p => p.ProductCode == product).ToListAsync();
+    public async Task<List<ProductOverride>> GetByProduct(string product) => await _context.ProductOverrides.Where(p => p.ProductCode == product).AsNoTracking().ToListAsync();
 
-    public Task<ProductOverride>? GetByIdAsync(int id) => _context.ProductOverrides.Where(p => p.Id == id).FirstOrDefaultAsync();
+    public Task<ProductOverride>? GetByIdAsync(int id) => _context.ProductOverrides.Where(p => p.Id == id).AsNoTracking().FirstOrDefaultAsync();
 
-    public async Task<ProductOverride?> GetByProductAndOverrideType(string product, int overrideType) => await _context.ProductOverrides.Where(p => p.OverrideType == overrideType && p.ProductCode == product).FirstOrDefaultAsync();
+    public async Task<ProductOverride?> GetByProductAndOverrideType(string product, int overrideType) => await _context.ProductOverrides.Where(p => p.OverrideType == overrideType && p.ProductCode == product).AsNoTracking().FirstOrDefaultAsync();
 
     /// <summary>
     /// update or add new record (note: EF will add a new record for update if the Id is not set)
