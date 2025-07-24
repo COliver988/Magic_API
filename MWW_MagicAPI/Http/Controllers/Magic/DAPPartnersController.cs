@@ -15,7 +15,7 @@ public class DAPPartnersController : ControllerBase
     public DAPPartnersController(IDapPartnersRepository dapPartnersRepository)
     {
         _dapPartnersRepository = dapPartnersRepository;
-    }  
+    }
 
     // GET: api/<DAPPartnersController>
     [HttpGet("ByPO")]
@@ -30,4 +30,9 @@ public class DAPPartnersController : ControllerBase
         return await _dapPartnersRepository.GetByTKRef1(tkref1);
     }
 
+    [HttpGet("MoveOrder")]
+    public async Task<DapPartner?> MoveOrder(string po, string location)
+    {
+        return await _dapPartnersRepository.MoveOrderAsync(po, location);
+    }
 }
