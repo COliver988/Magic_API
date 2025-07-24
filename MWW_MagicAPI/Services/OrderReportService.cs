@@ -21,7 +21,7 @@ public class OrderReportService : IOrderReportService
         var query = _context.DapPartners.AsQueryable();
 
         var now = DateTime.UtcNow;
-        query.Where(p => p.Date_Entered >= now.AddHours(-hour))
+        query.Where(p => p.DATE_PLACED >= now.AddHours(-hour))
              .GroupBy(order => new { Date = order.DATE_PLACED.Date, Hour = order.DATE_PLACED.Hour, PO = order.TKRef1 })
              .Select(g => new OrdersByHourDTO
              {
@@ -30,5 +30,6 @@ public class OrderReportService : IOrderReportService
                  Orders = g.Count(),
              });
         var result = await query.ToListAsync();
+        var hello = "hello";
     }
 }
