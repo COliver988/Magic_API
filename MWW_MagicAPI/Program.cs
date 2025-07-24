@@ -56,6 +56,7 @@ try
 
     // Register your service
     builder.Services.AddScoped<IAuthService, AuthService>();
+    builder.Services.AddScoped<IOrderReportService, OrderReportService>();
 
     builder.Services.AddHealthChecks()
        .AddCheck("Magic DB",
