@@ -21,8 +21,8 @@ namespace MWW_MagicAPI.Http.Controllers.Reports
         {
             try
             {
-                await _orderReportService.GetByHour(hour);
-                return Ok(); // Return appropriate response based on your service logic
+                var results = await _orderReportService.GetByHour(hour);
+                return Ok(results); // Return appropriate response based on your service logic
             }
             catch (Exception ex)
             {
