@@ -29,10 +29,11 @@ public class DapPartnersRepository : IDapPartnersRepository
         }
 
         var custId = partner.CC_APPROVED;
+        var TKRef1 = partner.TKRef1;
 
         // Step 2: Call stored procedure with all required parameters
         var sql = "EXEC dbo.util_MoveOrderLocation @orderID = @p0, @custid = @p1, @MoveLocation = @p2";
-        await _context.Database.ExecuteSqlRawAsync(sql, po, custId, location);
+        await _context.Database.ExecuteSqlRawAsync(sql, TKRef1, custId, location);
 
         // Step 3: Return the updated partner record (optional)
         return await _context.DapPartners
