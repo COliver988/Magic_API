@@ -1,34 +1,33 @@
 using Microsoft.AspNetCore.Mvc;
 using MWW_MagicAPI.Services;
 
-namespace MWW_MagicAPI.Http.Controllers.Reports
+namespace MWW_MagicAPI.Http.Controllers.Reports;
+
+[Route("api/[controller]")]
+public class OrderReportsController : Controller
 {
-    [Route("[controller]")]
-    public class OrderReportsController : Controller
+    IOrderReportService _orderReportService;
+    private readonly ILogger<OrderReportsController> _logger;
+
+    public OrderReportsController(ILogger<OrderReportsController> logger,
+        IOrderReportService orderReportService)
     {
-        IOrderReportService _orderReportService;
-        private readonly ILogger<OrderReportsController> _logger;
+        _orderReportService = orderReportService;
+        _logger = logger;
+    }
 
-        public OrderReportsController(ILogger<OrderReportsController> logger,
-            IOrderReportService orderReportService)
+    [HttpGet("ByHour")]
+    public async Task<IActionResult> GetByHour(int hours)
+    {
+        try
         {
-            _orderReportService = orderReportService;
-            _logger = logger;
+            var results = await _orderReportService.GetByHour(hours);
+            return Ok(results); // Return appropriate response based on your service logic
         }
-
-        [HttpGet("ByHour")]
-        public async Task<IActionResult> GetByHour(int hour)
+        catch (Exception ex)
         {
-            try
-            {
-                var results = await _orderReportService.GetByHour(hour);
-                return Ok(results); // Return appropriate response based on your service logic
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching orders by hour");
-                return StatusCode(500, "Internal server error");
-            }
+            _logger.LogError(ex, "Error fetching orders by hour");
+            return StatusCode(500, "Internal server error");
         }
     }
 }

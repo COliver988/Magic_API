@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 using MWW_Api.Config;
 using MWW_MagicAPI.Data.Models.DTO;
 
@@ -16,10 +16,10 @@ public class OrderReportService : IOrderReportService
     }
 
     //public async Task<IQueryable<OrdersByHourDTO>> GetByHour(int hour)
-    public async Task<List<OrdersByHourDTO>> GetByHour(int hour)
+    public async Task<List<OrdersByHourDTO>> GetByHour(int hours)
     {
         var now = DateTime.UtcNow;
-        var result = _context.DapPartners.Where(p => p.DATE_PLACED >= now.AddHours(-hour))
+        var result = _context.DapPartners.Where(p => p.DATE_PLACED >= now.AddHours(-hours) && p.TKRef2 != "JSON")
              .GroupBy(order => new { Date = order.DATE_PLACED.Date, Hour = order.DATE_PLACED.Hour })
              .Select(g => new OrdersByHourDTO
              {
