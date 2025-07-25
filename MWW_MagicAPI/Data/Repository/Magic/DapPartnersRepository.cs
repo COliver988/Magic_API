@@ -18,14 +18,25 @@ public class DapPartnersRepository : IDapPartnersRepository
     public async Task<DapPartner?> GetByTKRef1(string po) => await _context.DapPartners.Where(d => d.TKRef1 == po).FirstOrDefaultAsync();
     public async Task<DapPartner?> MoveOrderAsync(string po, string location)
     {
-        var orderID = po;
-        var custId = ""; 
+        // Step 1: Get the existing record to fetch custid (CC_APPROVED)
+        var partner = await _context.DapPartners
+            .FirstOrDefaultAsync(d => d.PO == po);
 
-        var sql = "EXEC dbo.util_MoveOrderLocation @orderID = {0}, @custid = {1}, @MoveLocation = {2}";
-        await _context.Database.ExecuteSqlRawAsync(sql, orderID, custId, location);
+        if (partner == null || string.IsNullOrWhiteSpace(partner.CC_APPROVED))
+        {
+            // No matching record or no customer ID to work with
+            return null;
+        }
 
+        var custId = partner.CC_APPROVED;
+
+        // Step 2: Call stored procedure with all required parameters
+        var sql = "EXEC dbo.util_MoveOrderLocation @orderID = @p0, @custid = @p1, @MoveLocation = @p2";
+        await _context.Database.ExecuteSqlRawAsync(sql, po, custId, location);
+
+        // Step 3: Return the updated partner record (optional)
         return await _context.DapPartners
-            .FirstOrDefaultAsync(d => d.TKRef1 == orderID && d.CC_APPROVED == custId);
+            .FirstOrDefaultAsync(d => d.PO == po && d.CC_APPROVED == custId);
     }
 
 }
