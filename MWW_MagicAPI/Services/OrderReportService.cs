@@ -26,6 +26,7 @@ public class OrderReportService : IOrderReportService
                  Date = g.Key.Date,
                  Hour = g.Key.Hour,
                  Orders = g.Count(),
+                 Name = "Magic"
              })
              .OrderBy(o => o.Date).ThenBy(o => o.Hour)
              .ToList();
