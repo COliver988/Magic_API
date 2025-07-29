@@ -36,7 +36,7 @@ public class DapPartner
     public decimal? ITEM_TOTAL { get; set; }
     public decimal? SHIPPING_TOTAL { get; set; }
     public decimal? GRAND_TOTAL { get; set; }
-    public DateTime? DATE_PLACED { get; set; }
+    public DateTime DATE_PLACED { get; set; }
     public string? CC_NAME { get; set; }
     public string? CC_TYPE { get; set; }
     public string? CC_NUM { get; set; }
