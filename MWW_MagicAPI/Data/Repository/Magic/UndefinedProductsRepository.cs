@@ -15,10 +15,7 @@ public class UndefinedProductsRepository : IUndefinedProductsRepository
         _logger = logger;
     }
 
-    public Task<List<UndefinedProduct>> GetAllAsync()
-    {
-        throw new NotImplementedException();
-    }
+    public async Task<List<UndefinedProduct>> GetAllAsync() => await _context.UndefinedProducts.ToListAsync();
 
     public async Task<bool> UpsertUndefinedProduct(string customerId, string productCode, string vendorPo, int interfaceId)
     {

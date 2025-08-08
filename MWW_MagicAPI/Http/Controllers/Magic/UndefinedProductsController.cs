@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MWW_Api.Repositories.Magic;
 
 namespace MWW_MagicAPI.Controllers;
 
 [Route("api/[controller]")]
+[Authorize]
 [ApiController]
 public class UndefinedProductsController : Controller
 {
@@ -12,6 +14,12 @@ public class UndefinedProductsController : Controller
     public UndefinedProductsController(IUndefinedProductsRepository repository)
     {
         _repository = repository;
+    }
+
+    [HttpGet("AllUndefinedProducts")]
+    public async Task<IActionResult> GetAllUndefinedProducts()
+    {
+        return Ok(await _repository.GetAllAsync());
     }
 
     [HttpGet("UpsertUndefinedProdcut")]
