@@ -16,13 +16,13 @@ public class UndefinedProductsController : Controller
         _repository = repository;
     }
 
-    [HttpGet("AllUndefinedProducts")]
+    [HttpGet("All")]
     public async Task<IActionResult> GetAllUndefinedProducts()
     {
         return Ok(await _repository.GetAllAsync());
     }
 
-    [HttpGet("UpsertUndefinedProdcut")]
+    [HttpGet("Upsert")]
     async public Task<IActionResult> UpsertUndefinedProduct(string customerId, string vendorPo, string productCode, int interfaceId)
     {
         try
