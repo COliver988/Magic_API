@@ -99,14 +99,14 @@ try
     }
 
     app.UseHsts();
+    app.UseMetricServer();
+    app.UseHttpMetrics();
     app.UseHttpsRedirection();
 
     app.UseAuthentication();
     app.UseAuthorization();
 
     app.MapControllers();
-    app.UseMetricServer();
-    app.UseHttpMetrics();
 
     app.UseHealthChecks("/api/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
     { ResponseWriter = HealthCheckExtensions.WriteResponse });
