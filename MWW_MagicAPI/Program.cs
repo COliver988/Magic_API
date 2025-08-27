@@ -10,6 +10,7 @@ using MWW_MagicAPI.Data.Models;
 using MWW_MagicAPI.Services;
 using System.Text;
 using Serilog;
+using Prometheus;
 
 
 var configuration = new ConfigurationBuilder()
@@ -29,6 +30,7 @@ try
     // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen();
+    builder.Services.UseHttpClientMetrics();
 
     // Exenta
     builder.Services.AddScoped<ICustomerBOLShipmentRepository, CustomerBOLShipmentRepository>();
@@ -97,6 +99,8 @@ try
     }
 
     app.UseHsts();
+    app.UseMetricServer();
+    app.UseHttpMetrics();
     app.UseHttpsRedirection();
 
     app.UseAuthentication();
