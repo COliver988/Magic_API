@@ -15,14 +15,36 @@ public class UndefinedProductsRepository : IUndefinedProductsRepository
         _logger = logger;
     }
 
+    public async Task<bool> DeleteUndefinedProducts(List<int> ids)
+    {
+        try
+        {
+            List<UndefinedProduct> products = new();
+            foreach (int id in ids)
+            {
+                products.Add(await _context.UndefinedProducts.FindAsync(id) ?? new UndefinedProduct());
+            }
+            _context.UndefinedProducts.RemoveRange(products);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex.Message);
+            return false;
+        }
+    }
+
     public async Task<List<UndefinedProduct>> GetAllAsync() => await _context.UndefinedProducts.ToListAsync();
 
     public async Task<bool> UpsertUndefinedProduct(string customerId, string productCode, string vendorPo, int interfaceId)
     {
         try
         {
-            var result = await _context.Database.ExecuteSqlRawAsync
-                ($"[dbo].[UpsertUndefinedProduct] @customer_id ='{customerId}', @vendor_po ='{vendorPo}', @product_code ='{productCode}', @interface_id = '{interfaceId}'");
+            var result = await _context.Database.ExecuteSqlInterpolatedAsync(
+               $@"EXEC [dbo].[UpsertUndefinedProduct] 
+                  @customer_id = {customerId}, 
+                  @vendor_po = {vendorPo}");
             return true;
         }
         catch (Exception ex)
