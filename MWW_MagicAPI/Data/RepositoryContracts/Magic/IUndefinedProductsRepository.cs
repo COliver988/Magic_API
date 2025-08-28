@@ -6,4 +6,6 @@ public interface IUndefinedProductsRepository
 {
     Task<List<UndefinedProduct>> GetAllAsync();
     Task<bool> UpsertUndefinedProduct(string customerId, string productCode, string vendorPo, int interfaceId);
+
+    Task<bool> DeleteUndefinedProducts(List<int> ids);
 }

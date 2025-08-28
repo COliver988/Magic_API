@@ -43,4 +43,14 @@ public class UndefinedProductsController : Controller
             return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
         }
     }
+
+    [HttpPost("Delete")]
+    async public Task<IActionResult> DeleteUndefinedProducts([FromBody] List<int> ids)
+    {
+        bool results = await _repository.DeleteUndefinedProducts(ids);
+        if (results)
+            return Ok(new { message = "Products deleted successfully." });
+        else
+            return BadRequest(new { message = "Failed to delete products." });
+    }
 }
