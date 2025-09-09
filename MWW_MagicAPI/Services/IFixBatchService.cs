@@ -1,5 +1,7 @@
+using MWW_Api.Models.Shopfloor;
+
 namespace MWW_MagicAPI.Services;
 public interface IFixBatchService
 {
-     Task GetMissingBatches(string batchId);   
+     Task<List<Unit>> GetMissingBatches(string batchId);   
 }
