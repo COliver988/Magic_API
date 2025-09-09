@@ -11,6 +11,8 @@ using MWW_MagicAPI.Services;
 using System.Text;
 using Serilog;
 using Prometheus;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 
 var configuration = new ConfigurationBuilder()
@@ -48,6 +50,12 @@ try
     builder.Services.AddDbContext<MagicDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Magic")));
     builder.Services.AddDbContext<ExentaDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Exenta")));
     builder.Services.AddDbContext<SerilogDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Database:Serilog")));
+    
+    // Shopfloor
+    builder.Services.AddDbContext<ShopfloorHVDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:ShopfloorHV")));
+    builder.Services.AddDbContext<ShopfloorPDDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:ShopfloorPD")));
+    builder.Services.AddDbContext<ShopfloorTJDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:ShopfloorTJ")));
+    builder.Services.AddDbContext<ShopfloorGMDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:ShopfloorGM")));
 
 
     // Add configuration from appsettings.json or other sources
@@ -66,6 +74,22 @@ try
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:Magic")),
            HealthStatus.Unhealthy,
            new string[] { "Magic DB", "Database" })
+       .AddCheck("Shopfloor Hendersonville",
+           new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:ShopfloorHV")),
+           HealthStatus.Unhealthy,
+           new string[] { "Shopfloor Hendersonville", "Database" })
+       .AddCheck("Shopfloor Spindale",
+           new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:ShopfloorPD")),
+           HealthStatus.Unhealthy,
+           new string[] { "Shopfloor Spindale", "Database" })
+       .AddCheck("Shopfloor Tijuana",
+           new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:ShopfloorTJ")),
+           HealthStatus.Unhealthy,
+           new string[] { "Shopfloor Tijuana", "Database" })
+       .AddCheck("Shopfloor Germany",
+           new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:ShopfloorGM")),
+           HealthStatus.Unhealthy,
+           new string[] { "Shopfloor Germany", "Database" })
        .AddCheck("Exenta DB",
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:Exenta")),
            HealthStatus.Unhealthy,
@@ -114,6 +138,7 @@ try
     Log.Information(builder.Configuration.GetConnectionString("Database:Serilog"));
     Log.Information(builder.Configuration.GetConnectionString("Database:Magic"));
     Log.Information(builder.Configuration.GetConnectionString("Database:Exenta"));
+    Log.Information(builder.Configuration.GetConnectionString("Database:ShopfloorPD"));
 
     app.Run();
 }
