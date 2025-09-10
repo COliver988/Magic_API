@@ -17,7 +17,7 @@ public class FixBatchService : IFixBatchService
         public int ProdNoCompany { get; set; }
         public int? OpenSeq { get; set; }
         public string BatchID { get; set; }
-        public short PrintOrder { get; set; }
+        public int PrintOrder { get; set; }
     }
 
     public FixBatchService(IShopfloorDbContextFactory contextFactory, ExentaDbContext exentaContext, MagicDbContext magicDbContext)
@@ -72,8 +72,8 @@ public class FixBatchService : IFixBatchService
             .Where(dpd => dpd.BatchID == batchId)
             .Join(
                 _magicDbContext.ExentaPOLinesWithAckNos,
-                dpd => new { dpd.PO, dpd.Ln_No },
-                ack => new { PO = ack.PO, Ln_No = ack.LN_NO },
+                dpd => new { dpd.PO, LineNo = (int)dpd.Ln_No },
+                ack => new { PO = ack.PO, LineNo = ack.LN_NO },
                 (dpd, ack) => new { dpd, ack }
             )
             .AsNoTracking()
@@ -85,14 +85,14 @@ public class FixBatchService : IFixBatchService
                 ProdNoCompany = int.TryParse(x.ack.ProdNoCompany?.Trim(), out var prodNo) ? prodNo : 0,
                 OpenSeq = x.ack.OpenSeq,
                 BatchID = x.dpd.BatchID!,
-                PrintOrder = x.dpd.PrintOrder
+                PrintOrder = x.dpd.printedOrder.HasValue ? (short)x.dpd.printedOrder.Value : x.dpd.PrintOrder
             })
             .ToList();
 
         return magicUnits;
     }
 
-    public async Task<List<Dictionary<string, string>>> GetExentaOrderDataAsync(string prodNoCompany)
+    public async Task<List<Dictionary<string, string>>> GetExentaOrderDataAsync(int prodNoCompany)
     {
         // Optional: Begin a transaction with ReadUncommitted isolation
         using var transaction = await _exentaContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadUncommitted);
@@ -102,18 +102,18 @@ public class FixBatchService : IFixBatchService
                         on poh.PKEY equals pod.FKEY
                     join oh in _exentaContext.OrderHeaders
                         on poh.ORDERNO equals oh.ORDERNO
-                    where pod.PRODSTAGE == "MAKE" && poh.ProdNoCompany == prodNoCompany
+                    where pod.PRODSTAGE == "MAKE" && poh.PRODNOCOMPANY == prodNoCompany
                     select new
                     {
-                        oh.OrderOrigin,
-                        pod.ProdLineQty
+                        oh.ORDERORIGIN,
+                        pod.PRODLINEQTY
                     };
 
         var result = await query
             .Select(e => new Dictionary<string, string>
             {
-            { "orderorigin", e.OrderOrigin?.Trim() ?? "" },
-            { "prodlineqty", e.ProdLineQty?.ToString().Trim() ?? "" }
+            { "orderorigin", e.ORDERORIGIN.Trim() ?? "" },
+            { "prodlineqty", e.PRODLINEQTY.ToString().Trim() ?? "" }
             })
             .ToListAsync();
 
