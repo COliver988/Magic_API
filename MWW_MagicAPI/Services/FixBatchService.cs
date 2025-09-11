@@ -34,17 +34,15 @@ public class FixBatchService : IFixBatchService
         if (!missingUnits.Any()) return null;
         StringBuilder workorderFileData = new StringBuilder();
         foreach (MagicUnit unit in missingUnits)
-        {
-            workorderFileData.AppendLine($"{unit.ProdNoCompany},{unit.OpenSeq},{unit.BatchID},{unit.PrintOrder}");
-        }
+            workorderFileData.AppendLine(await batchUnitValues(unit.ProdNoCompany, unit.OpenSeq) + ",");
 
         return null;
     }
 
     private async Task<List<MagicUnit>> getMissingBatches(string batchId)
     {
-        List<Unit> unitsInShopfloor = await GetUnitsFromShopfloor(batchId);
-        List<MagicUnit> unitsInMagic = await GetUnitsFromMagic(batchId);
+        List<Unit> unitsInShopfloor = await getUnitsFromShopfloor(batchId);
+        List<MagicUnit> unitsInMagic = await getUnitsFromMagic(batchId);
         var shopFloorKeys = unitsInShopfloor
             .Select(u => $"{u.BatchId}_{u.BatchSeq}")
             .ToHashSet();
@@ -57,7 +55,7 @@ public class FixBatchService : IFixBatchService
         return filteredMagicUnits;
     }
 
-    private Task<List<Unit>> GetUnitsFromShopfloor(string batchId)
+    private Task<List<Unit>> getUnitsFromShopfloor(string batchId)
     {
         var units = _context.Units
             .Where(u => u.BatchId == batchId)
@@ -66,7 +64,7 @@ public class FixBatchService : IFixBatchService
         return units;
     }
 
-    private async Task<List<MagicUnit>> GetUnitsFromMagic(string batchId)
+    private async Task<List<MagicUnit>> getUnitsFromMagic(string batchId)
     {
         var rawResults = await _magicDbContext.DyePrintDetails
             .Where(dpd => dpd.BatchID == batchId)
@@ -92,7 +90,84 @@ public class FixBatchService : IFixBatchService
         return magicUnits;
     }
 
-    public async Task<List<Dictionary<string, string>>> GetExentaOrderDataAsync(int prodNoCompany)
+    private async Task<string> batchUnitValues(int prodNoCompany, int openSeq)
+    {
+        List<Dictionary<string, string>> exentaData = await getExentaOrderDataAsync(prodNoCompany);
+        string consolidate = goesToConsolidation(exentaData);
+        Dictionary<string, string> unitData =  await getExentaUnitDataAsync(prodNoCompany, openSeq, consolidate);
+    }
+
+    private string goesToConsolidation(List<Dictionary<string, string>> exentaData)
+    {
+        if (exentaData.Count > 1 ||
+            exentaData.Any(d => d.TryGetValue("orderorigin", out var origin) && origin.Contains("STS")) ||
+            exentaData.Any(d => d.TryGetValue("prodlineqty", out var qtyStr) &&
+                                     double.TryParse(qtyStr, out var qty) && qty > 1.0))
+        {
+            return "Y";
+        }
+        else
+        {
+            return "N";
+        }
+    }
+
+    private async Task<Dictionary<string, string>> getExentaUnitDataAsync(int prodNoCompany, int sequence, string consolidate)
+    {
+        using var transaction = await _exentaContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadUncommitted);
+
+        var query = from pod in _exentaContext.ProdOrderDetails
+                    join poh in _exentaContext.ProdOrderHeaders on pod.PRODNO equals poh.PRODNO
+                    join pioh in _exentaContext.PickOrderHeaders on poh.ORDERNO equals pioh.ORDERNO
+                    join piod in _exentaContext.PickOrderDetails on new { pioh.PICKNO, pod.ORDERSEQ } equals new { piod.PICKNO, ORDERSEQ = piod.SEQUENCE }
+                    join si in _exentaContext.StyleItems on pod.ITEMNO equals si.ITEMNO
+                    join st in _exentaContext.Styles on si.STYLE equals st.STYLE
+                    join s in _exentaContext.Sizes on si.SIZE equals s.SIZE into sizeJoin
+                    from s in sizeJoin.DefaultIfEmpty()
+                    join d in _exentaContext.Dimensions on si.DIMENSION equals d.DIMENSION into dimJoin
+                    from d in dimJoin.DefaultIfEmpty()
+                    join c in _exentaContext.Colors on si.COLOR equals c.COLOR into colorJoin
+                    from c in colorJoin.DefaultIfEmpty()
+                    where poh.PRODNOCOMPANY == prodNoCompany && pod.OPENSEQ == sequence && pod.PRODSTAGENO == 1
+                    select new
+                    {
+                        pod.PRODSTAGENO,
+                        poh.PRODNOCOMPANY,
+                        pod.OPENSEQ,
+                        pod.ITEMNO,
+                        si.STYLE,
+                        st.STYLENAME,
+                        si.LABEL,
+                        si.COLOR,
+                        c.COLORDESC,
+                        si.DIMENSION,
+                        d.DIMENSIONDESC,
+                        si.SIZE,
+                        s.SIZEDESC,
+                        PRODLINEQTY = (int?)pod.PRODLINEQTY,
+                        pod.UOM,
+                        DETAILSHIPDATE = pod.SHIPDATE.HasValue ? pod.SHIPDATE.Value.ToString("MM/dd/yyyy") : "",
+                        DTLDUEDATE = pod.DUEDATE.HasValue ? pod.DUEDATE.Value.ToString("MM/dd/yyyy") : "",
+                        poh.ORDERNOCOMPANY,
+                        piod.WEBUDF03,
+                        poh.WAREHOUSE,
+                        Consolidate = consolidate,
+                        Message = ""
+                    };
+
+        var result = await query.FirstOrDefaultAsync();
+
+        await transaction.CommitAsync();
+
+        return result?.GetType()
+            .GetProperties()
+            .ToDictionary(
+                prop => prop.Name,
+                prop => (prop.GetValue(result)?.ToString() ?? "").Trim()
+            ) ?? new Dictionary<string, string>();
+    }
+
+    private async Task<List<Dictionary<string, string>>> getExentaOrderDataAsync(int prodNoCompany)
     {
         // Optional: Begin a transaction with ReadUncommitted isolation
         using var transaction = await _exentaContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadUncommitted);
