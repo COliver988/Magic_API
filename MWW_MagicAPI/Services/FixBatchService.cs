@@ -34,7 +34,7 @@ public class FixBatchService : IFixBatchService
         if (!missingUnits.Any()) return null;
         StringBuilder workorderFileData = new StringBuilder();
         foreach (MagicUnit unit in missingUnits)
-            workorderFileData.AppendLine(await batchUnitValues(unit.ProdNoCompany, unit.OpenSeq) + ",");
+            workorderFileData.AppendLine(await batchUnitValues(unit.ProdNoCompany, unit.OpenSeq.Value) + ",");
 
         return null;
     }
@@ -94,7 +94,7 @@ public class FixBatchService : IFixBatchService
     {
         List<Dictionary<string, string>> exentaData = await getExentaOrderDataAsync(prodNoCompany);
         string consolidate = goesToConsolidation(exentaData);
-        Dictionary<string, string> unitData =  await getExentaUnitDataAsync(prodNoCompany, openSeq, consolidate);
+        return  await getExentaUnitDataAsync(prodNoCompany, openSeq, consolidate);
     }
 
     private string goesToConsolidation(List<Dictionary<string, string>> exentaData)
@@ -112,7 +112,7 @@ public class FixBatchService : IFixBatchService
         }
     }
 
-    private async Task<Dictionary<string, string>> getExentaUnitDataAsync(int prodNoCompany, int sequence, string consolidate)
+    private async Task<string> getExentaUnitDataAsync(int prodNoCompany, int sequence, string consolidate)
     {
         using var transaction = await _exentaContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadUncommitted);
 
@@ -146,8 +146,8 @@ public class FixBatchService : IFixBatchService
                         s.SIZEDESC,
                         PRODLINEQTY = (int?)pod.PRODLINEQTY,
                         pod.UOM,
-                        DETAILSHIPDATE = pod.SHIPDATE.HasValue ? pod.SHIPDATE.Value.ToString("MM/dd/yyyy") : "",
-                        DTLDUEDATE = pod.DUEDATE.HasValue ? pod.DUEDATE.Value.ToString("MM/dd/yyyy") : "",
+                        DETAILSHIPDATE = pod.SHIPDATE.ToString("MM/dd/yyyy"),
+                        DTLDUEDATE = pod.DUEDATE.ToString("MM/dd/yyyy"),
                         poh.ORDERNOCOMPANY,
                         piod.WEBUDF03,
                         poh.WAREHOUSE,
@@ -159,12 +159,46 @@ public class FixBatchService : IFixBatchService
 
         await transaction.CommitAsync();
 
-        return result?.GetType()
-            .GetProperties()
-            .ToDictionary(
-                prop => prop.Name,
-                prop => (prop.GetValue(result)?.ToString() ?? "").Trim()
-            ) ?? new Dictionary<string, string>();
+        return ToCsv(result);
+    }
+
+    private string ToCsv(dynamic item)
+    {
+        var values = new[]
+        {
+        item.PRODSTAGENO?.ToString(),
+        item.PRODNOCOMPANY?.ToString(),
+        item.OPENSEQ?.ToString(),
+        item.ITEMNO?.ToString(),
+        item.STYLE?.ToString(),
+        item.STYLENAME?.ToString(),
+        item.LABEL?.ToString(),
+        item.COLOR?.ToString(),
+        item.COLORDESC?.ToString(),
+        item.DIMENSION?.ToString(),
+        item.DIMENSIONDESC?.ToString(),
+        item.SIZE?.ToString(),
+        item.SIZEDESC?.ToString(),
+        item.PRODLINEQTY?.ToString(),
+        item.UOM?.ToString(),
+        item.DETAILSHIPDATE?.ToString(),
+        item.DTLDUEDATE?.ToString(),
+        item.ORDERNOCOMPANY?.ToString(),
+        item.WEBUDF03?.ToString(),
+        item.WAREHOUSE?.ToString(),
+        item.Consolidate?.ToString(),
+        item.Message?.ToString()
+    };
+
+        // Escape values that contain commas, quotes, or newlines
+        var escaped = values.Select(v =>
+            string.IsNullOrEmpty(v) ? "" :
+            v.Contains(",") || v.Contains("\"") || v.Contains("\n")
+                ? $"\"{v.Replace("\"", "\"\"")}\""
+                : v
+        );
+
+        return string.Join(",", escaped);
     }
 
     private async Task<List<Dictionary<string, string>>> getExentaOrderDataAsync(int prodNoCompany)
