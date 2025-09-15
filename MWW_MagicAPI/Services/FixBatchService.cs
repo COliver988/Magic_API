@@ -12,6 +12,15 @@ public class FixBatchService : IFixBatchService
     private readonly MagicDbContext _magicDbContext;
     private ShopfloorDbContext _context;
 
+    private string[] _workOrderHeaders = {
+            "ProdStageNo", "ProdNoCompany", "OpenSeq", "ItemNo", "Style", "StyleName", "Label", "Color", "ColorDesc",
+            "Dimension", "DimensionDesc", "Size", "SizeDesc", "ProdLineQty", "UOM", "DetailShipDate", "DtlDueDate",
+            "OrderNoCompany", "PONumber", "Warehouse", "Consolidate", "Message"
+        };
+    private string[] _workOrderHeaderUnits = {
+            "Workorder", "Batch", "Seq", "Quantity", "Unit", "Thumbnail", "Content", "Flag"
+        };
+
     private record MagicUnit
     {
         public int ProdNoCompany { get; set; }
@@ -35,8 +44,22 @@ public class FixBatchService : IFixBatchService
         StringBuilder workorderFileData = new StringBuilder();
         foreach (MagicUnit unit in missingUnits)
             workorderFileData.AppendLine(await batchUnitValues(unit.ProdNoCompany, unit.OpenSeq.Value) + ",");
+        write_to_workorder_file(workorderFileData);
+        //write_to_workorder_units_file(workorderFileData.ToString(), batchId);
 
         return null;
+    }
+
+    private void write_to_workorder_file(StringBuilder workorderFileData)
+    {
+        string headerLine = string.Join(",", _workOrderHeaders);
+        string filePath = Path.Combine(AppContext.BaseDirectory, "Import", "Workorder.csv");
+        Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+        using (StreamWriter writer = new StreamWriter(filePath, false, Encoding.UTF8))
+        {
+            writer.WriteLine(headerLine);
+            writer.Write(workorderFileData.ToString());
+        }
     }
 
     private async Task<List<MagicUnit>> getMissingBatches(string batchId)
@@ -52,6 +75,8 @@ public class FixBatchService : IFixBatchService
             .OrderBy(d => d.PrintOrder)
             .ToList();
 
+        //testing!
+        filteredMagicUnits = unitsInMagic;
         return filteredMagicUnits;
     }
 

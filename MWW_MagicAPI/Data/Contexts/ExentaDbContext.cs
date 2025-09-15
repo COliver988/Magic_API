@@ -24,17 +24,17 @@ public class ExentaDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         // Specify the schema for the entity
-        modelBuilder.Entity<CustomerBOLShipment>().ToTable("CustomerBOLShipment", schema: "dbo");
-        modelBuilder.Entity<InvoiceOrderHeader>().ToTable("InvoiceOrderHeader", schema: "dbo");
-        modelBuilder.Entity<OrderHeader>().ToTable("OrderHeader", schema: "dbo");
-        modelBuilder.Entity<ProdOrderHeader>().ToTable("ProdOrderHeader", schema: "dbo");
-        modelBuilder.Entity<ProdOrderDetail>().ToTable("ProdOrderDetail", schema: "dbo");
-        modelBuilder.Entity<PickOrderHeader>().ToTable("PickOrderHeader", schema: "dbo");
-        modelBuilder.Entity<PickOrderDetail>().ToTable("PickOrderDetail", schema: "dbo");
-        modelBuilder.Entity<Style>().ToTable("Style", schema: "dbo");
-        modelBuilder.Entity<StyleItem>().ToTable("StyleItem", schema: "dbo");
-        modelBuilder.Entity<Size>().ToTable("Size", schema: "dbo");
-        modelBuilder.Entity<Dimension>().ToTable("Dimension", schema: "dbo");
-        modelBuilder.Entity<Color>().ToTable("Color", schema: "dbo");
+        modelBuilder.Entity<CustomerBOLShipment>().ToTable("CustomerBOLShipment", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<InvoiceOrderHeader>().ToTable("InvoiceOrderHeader", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<OrderHeader>().ToTable("OrderHeader", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<ProdOrderHeader>().ToTable("ProdOrderHeader", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<ProdOrderDetail>().ToTable("ProdOrderDetail", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<PickOrderHeader>().ToTable("PickOrderHeader", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<PickOrderDetail>().ToTable("PickOrderDetail", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<Style>().ToTable("Style", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<StyleItem>().ToTable("StyleItem", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<Size>().ToTable("Size", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<Dimension>().ToTable("Dimension", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<Color>().ToTable("Color", schema: "dbo").HasNoKey();
     }
 }
