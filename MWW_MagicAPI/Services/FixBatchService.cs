@@ -139,50 +139,85 @@ public class FixBatchService : IFixBatchService
 
     private async Task<string> getExentaUnitDataAsync(int prodNoCompany, int sequence, string consolidate)
     {
-        using var transaction = await _exentaContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadUncommitted);
+        // Step 1: Get ProdOrderDetail
+        var pod = await _exentaContext.ProdOrderDetails
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.PRODSTAGENO == 1 && p.OPENSEQ == sequence);
 
-        var query = from pod in _exentaContext.ProdOrderDetails
-                    join poh in _exentaContext.ProdOrderHeaders on pod.PRODNO equals poh.PRODNO
-                    join pioh in _exentaContext.PickOrderHeaders on poh.ORDERNO equals pioh.ORDERNO
-                    join piod in _exentaContext.PickOrderDetails on new { pioh.PICKNO, pod.ORDERSEQ } equals new { piod.PICKNO, ORDERSEQ = piod.SEQUENCE }
-                    join si in _exentaContext.StyleItems on pod.ITEMNO equals si.ITEMNO
-                    join st in _exentaContext.Styles on si.STYLE equals st.STYLE
-                    join s in _exentaContext.Sizes on si.SIZE equals s.SIZE into sizeJoin
-                    from s in sizeJoin.DefaultIfEmpty()
-                    join d in _exentaContext.Dimensions on si.DIMENSION equals d.DIMENSION into dimJoin
-                    from d in dimJoin.DefaultIfEmpty()
-                    join c in _exentaContext.Colors on si.COLOR equals c.COLOR into colorJoin
-                    from c in colorJoin.DefaultIfEmpty()
-                    where poh.PRODNOCOMPANY == prodNoCompany && pod.OPENSEQ == sequence && pod.PRODSTAGENO == 1
-                    select new
-                    {
-                        pod.PRODSTAGENO,
-                        poh.PRODNOCOMPANY,
-                        pod.OPENSEQ,
-                        pod.ITEMNO,
-                        si.STYLE,
-                        st.STYLENAME,
-                        si.LABEL,
-                        si.COLOR,
-                        c.COLORDESC,
-                        si.DIMENSION,
-                        d.DIMENSIONDESC,
-                        si.SIZE,
-                        s.SIZEDESC,
-                        PRODLINEQTY = (int?)pod.PRODLINEQTY,
-                        pod.UOM,
-                        DETAILSHIPDATE = pod.SHIPDATE.ToString("MM/dd/yyyy"),
-                        DTLDUEDATE = pod.DUEDATE.ToString("MM/dd/yyyy"),
-                        poh.ORDERNOCOMPANY,
-                        piod.WEBUDF03,
-                        poh.WAREHOUSE,
-                        Consolidate = consolidate,
-                        Message = ""
-                    };
+        if (pod == null) return null;
 
-        var result = await query.FirstOrDefaultAsync();
+        // Step 2: Get ProdOrderHeader
+        var poh = await _exentaContext.ProdOrderHeaders
+            .AsNoTracking()
+            .FirstOrDefaultAsync(h => h.PRODNOCOMPANY == prodNoCompany);
 
-        await transaction.CommitAsync();
+        if (poh == null) return null;
+
+        // Step 3: Get PickOrderHeader
+        var pioh = await _exentaContext.PickOrderHeaders
+            .AsNoTracking()
+            .FirstOrDefaultAsync(ph => ph.ORDERNO == poh.ORDERNO);
+
+        // Step 4: Get PickOrderDetail
+        var piod = pioh != null
+            ? await _exentaContext.PickOrderDetails
+                .AsNoTracking()
+                .FirstOrDefaultAsync(pd => pd.PICKNO == pioh.PICKNO && pd.SEQUENCE == pod.ORDERSEQ)
+            : null;
+
+        // Step 5: Get StyleItem
+        var si = await _exentaContext.StyleItems
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.ITEMNO == pod.ITEMNO);
+
+        if (si == null) return null;
+
+        // Step 6: Get Style
+        var st = await _exentaContext.Styles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.STYLE == si.STYLE);
+
+        // Step 7: Get Size (optional)
+        var s = !string.IsNullOrEmpty(si.SIZE)
+            ? await _exentaContext.Sizes.AsNoTracking().FirstOrDefaultAsync(sz => sz.SIZE == si.SIZE)
+            : null;
+
+        // Step 8: Get Dimension (optional)
+        var d = !string.IsNullOrEmpty(si.DIMENSION)
+            ? await _exentaContext.Dimensions.AsNoTracking().FirstOrDefaultAsync(dim => dim.DIMENSION == si.DIMENSION)
+            : null;
+
+        // Step 9: Get Color (optional)
+        var c = !string.IsNullOrEmpty(si.COLOR)
+            ? await _exentaContext.Colors.AsNoTracking().FirstOrDefaultAsync(col => col.COLOR == si.COLOR)
+            : null;
+
+        // Step 10: Project the result
+        var result = new
+        {
+            pod.PRODSTAGENO,
+            poh.PRODNOCOMPANY,
+            pod.OPENSEQ,
+            pod.ITEMNO,
+            si.STYLE,
+            st?.STYLENAME,
+            si.LABEL,
+            si.COLOR,
+            c?.COLORDESC,
+            si.DIMENSION,
+            d?.DIMENSIONDESC,
+            si.SIZE,
+            s?.SIZEDESC,
+            PRODLINEQTY = (int?)pod.PRODLINEQTY,
+            pod.UOM,
+            DETAILSHIPDATE = pod.SHIPDATE.ToString("MM/dd/yyyy"),
+            DTLDUEDATE = pod.DUEDATE.ToString("MM/dd/yyyy"),
+            poh.ORDERNOCOMPANY,
+            WEBUDF03 = piod?.WEBUDF03,
+            poh.WAREHOUSE,
+            Consolidate = consolidate,
+            Message = ""
+        };
 
         return ToCsv(result);
     }
