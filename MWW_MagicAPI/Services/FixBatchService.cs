@@ -45,7 +45,7 @@ public class FixBatchService : IFixBatchService
         foreach (MagicUnit unit in missingUnits)
             workorderFileData.AppendLine(await batchUnitValues(unit.ProdNoCompany, unit.OpenSeq.Value) + ",");
         write_to_workorder_file(workorderFileData);
-        //write_to_workorder_units_file(workorderFileData.ToString(), batchId);
+        write_to_workorder_units_file(batchId);
 
         return null;
     }
@@ -60,6 +60,42 @@ public class FixBatchService : IFixBatchService
             writer.WriteLine(headerLine);
             writer.Write(workorderFileData.ToString());
         }
+    }
+
+    private async void write_to_workorder_units_file(string batchId)
+    {
+        string headerLine = string.Join(",", _workOrderHeaderUnits);
+        string filePath = Path.Combine(AppContext.BaseDirectory, "Import", $"WorkorderUnits_{batchId}.csv");
+        Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+        List<string> unitData  = await GetFormattedPrintDetails(batchId); 
+
+        using (StreamWriter writer = new StreamWriter(filePath, false, Encoding.UTF8))
+        {
+            writer.WriteLine(headerLine);
+            foreach (string unitDataLine in unitData)
+                writer.WriteLine(unitDataLine);
+        }
+    }
+
+    public async Task<List<string>> GetFormattedPrintDetails(string batchId)
+    {
+        var result = (from dpd in _magicDbContext.DyePrintDetails
+                      join ack in _magicDbContext.ExentaPOLinesWithAckNos
+                          on new { dpd.PO, LineNo = (int)dpd.Ln_No } equals new { ack.PO, LineNo = ack.LN_NO }
+                      where dpd.BatchID == batchId
+                            && !new[] { "queue", "ready", "pods" }.Contains(dpd.Status)
+                      orderby dpd.printedOrder
+                      select new
+                      {
+                          Formatted = ack.ProdNoCompany + "-" + ack.OpenSeq.ToString() + "," +
+                                      dpd.BatchID + "," +
+                                      dpd.printedOrder.ToString() + ",1," +
+                                      dpd.BatchID + "_" + dpd.printedOrder.ToString() + "," +
+                                      dpd.PO + "_" + dpd.printedOrder.ToString() + ".jpg,,I"
+                      }).ToList();
+
+        return result.Select(r => r.Formatted).ToList();
+
     }
 
     private async Task<List<MagicUnit>> getMissingBatches(string batchId)
