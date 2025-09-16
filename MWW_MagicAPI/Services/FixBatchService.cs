@@ -139,19 +139,20 @@ public class FixBatchService : IFixBatchService
 
     private async Task<string> getExentaUnitDataAsync(int prodNoCompany, int sequence, string consolidate)
     {
-        // Step 1: Get ProdOrderDetail
-        var pod = await _exentaContext.ProdOrderDetails
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.PRODSTAGENO == 1 && p.OPENSEQ == sequence);
-
-        if (pod == null) return null;
-
-        // Step 2: Get ProdOrderHeader
+        // Step 1: Get ProdOrderHeader
         var poh = await _exentaContext.ProdOrderHeaders
             .AsNoTracking()
             .FirstOrDefaultAsync(h => h.PRODNOCOMPANY == prodNoCompany);
 
         if (poh == null) return null;
+
+        // Step 2: Get ProdOrderDetail
+        var pod = await _exentaContext.ProdOrderDetails
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.PRODSTAGENO == 1 && p.OPENSEQ == sequence && p.PRODNO == poh.PRODNO);
+
+        if (pod == null) return null;
+
 
         // Step 3: Get PickOrderHeader
         var pioh = await _exentaContext.PickOrderHeaders
