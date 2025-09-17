@@ -1,3 +1,4 @@
+using CsvHelper;
 using Microsoft.EntityFrameworkCore;
 using MWW_Api.Config;
 using MWW_Api.Models.Shopfloor;
@@ -12,11 +13,32 @@ public class FixBatchService : IFixBatchService
     private readonly MagicDbContext _magicDbContext;
     private ShopfloorDbContext _context;
 
-    private string[] _workOrderHeaders = {
-            "ProdStageNo", "ProdNoCompany", "OpenSeq", "ItemNo", "Style", "StyleName", "Label", "Color", "ColorDesc",
-            "Dimension", "DimensionDesc", "Size", "SizeDesc", "ProdLineQty", "UOM", "DetailShipDate", "DtlDueDate",
-            "OrderNoCompany", "PONumber", "Warehouse", "Consolidate", "Message"
-        };
+    private record WorkOrderData
+    {
+        public int ProdStageNo { get; set; }
+        public int ProdNoCompany { get; set; }
+        public int OpenSeq { get; set; }
+        public int ItemNo { get; set; }
+        public string Style { get; set; }
+        public string StyleName { get; set; }
+        public string Label { get; set; }
+        public string Color { get; set; }
+        public string ColorDesc { get; set; }
+        public string Dimension { get; set; }
+        public string DimensionDesc { get; set; }
+        public string Size { get; set; }
+        public string SizeDesc { get; set; }
+        public int? ProdLineQty { get; set; }
+        public string UOM { get; set; }
+        public string DetailShipDate { get; set; }
+        public string DtlDueDate { get; set; }
+        public int OrderNoCompany { get; set; }
+        public string PONumber { get; set; }
+        public string Warehouse { get; set; }
+        public string Consolidate { get; set; }
+        public string Message { get; set; }
+    }
+
     private string[] _workOrderHeaderUnits = {
             "Workorder", "Batch", "Seq", "Quantity", "Unit", "Thumbnail", "Content", "Flag"
         };
@@ -41,24 +63,37 @@ public class FixBatchService : IFixBatchService
         _context = _contextFactory.GetContext(batchId);
         List<MagicUnit> missingUnits = await getMissingBatches(batchId);
         if (!missingUnits.Any()) return null;
-        StringBuilder workorderFileData = new StringBuilder();
+        List<WorkOrderData> workorderData = new List<WorkOrderData>();
         foreach (MagicUnit unit in missingUnits)
-            workorderFileData.AppendLine(await batchUnitValues(unit.ProdNoCompany, unit.OpenSeq.Value) + ",");
-        write_to_workorder_file(workorderFileData);
+            workorderData.Add(await batchUnitValues(unit.ProdNoCompany, unit.OpenSeq.Value));
+        write_to_workorder_file(workorderData);
         write_to_workorder_units_file(batchId);
 
         return null;
     }
 
-    private void write_to_workorder_file(StringBuilder workorderFileData)
+    /// <summary>
+    /// write to file; 1st to temp file, then move to final location to prevent hot folder grabbing incomplete file
+    /// </summary>
+    /// <param name="workorderFileData"></param>
+    private void write_to_workorder_file(List<WorkOrderData> workorderData)
     {
-        string headerLine = string.Join(",", _workOrderHeaders);
-        string filePath = Path.Combine(AppContext.BaseDirectory, "Import", "Workorder.csv");
-        Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-        using (StreamWriter writer = new StreamWriter(filePath, false, Encoding.UTF8))
+        string tempFilePath = Path.Combine(Path.GetTempFileName());
+        using (StreamWriter writer = new StreamWriter(tempFilePath, false, Encoding.UTF8))
+        using (var csv = new CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture))
         {
-            writer.WriteLine(headerLine);
-            writer.Write(workorderFileData.ToString());
+            csv.WriteRecords(workorderData);
+        }
+
+        // mive to final location and cleanup
+        if (File.Exists(tempFilePath))
+        {
+            string finalFilePath = Path.Combine(AppContext.BaseDirectory, "Import", "Workorders.csv");
+            Directory.CreateDirectory(Path.GetDirectoryName(finalFilePath)!);
+            if (File.Exists(finalFilePath))
+                File.Delete(finalFilePath);
+            File.Move(tempFilePath, finalFilePath);
+            File.Delete(tempFilePath);
         }
     }
 
@@ -151,7 +186,7 @@ public class FixBatchService : IFixBatchService
         return magicUnits;
     }
 
-    private async Task<string> batchUnitValues(int prodNoCompany, int openSeq)
+    private async Task<WorkOrderData> batchUnitValues(int prodNoCompany, int openSeq)
     {
         List<Dictionary<string, string>> exentaData = await getExentaOrderDataAsync(prodNoCompany);
         string consolidate = goesToConsolidation(exentaData);
@@ -173,7 +208,7 @@ public class FixBatchService : IFixBatchService
         }
     }
 
-    private async Task<string> getExentaUnitDataAsync(int prodNoCompany, int sequence, string consolidate)
+    private async Task<WorkOrderData> getExentaUnitDataAsync(int prodNoCompany, int sequence, string consolidate)
     {
         // Step 1: Get ProdOrderHeader
         var poh = await _exentaContext.ProdOrderHeaders
@@ -230,33 +265,31 @@ public class FixBatchService : IFixBatchService
             : null;
 
         // Step 10: Project the result
-        var result = new
+        return new WorkOrderData
         {
-            pod.PRODSTAGENO,
-            poh.PRODNOCOMPANY,
-            pod.OPENSEQ,
-            pod.ITEMNO,
-            si.STYLE,
-            st?.STYLENAME,
-            si.LABEL,
-            si.COLOR,
-            c?.COLORDESC,
-            si.DIMENSION,
-            d?.DIMENSIONDESC,
-            si.SIZE,
-            s?.SIZEDESC,
-            PRODLINEQTY = (int?)pod.PRODLINEQTY,
-            pod.UOM,
-            DETAILSHIPDATE = pod.SHIPDATE.ToString("MM/dd/yyyy"),
-            DTLDUEDATE = pod.DUEDATE.ToString("MM/dd/yyyy"),
-            poh.ORDERNOCOMPANY,
-            WEBUDF03 = piod?.WEBUDF03,
-            poh.WAREHOUSE,
+            ProdStageNo = pod.PRODSTAGENO,
+            ProdNoCompany = poh.PRODNOCOMPANY,
+            OpenSeq = pod.OPENSEQ,
+            ItemNo = pod.ITEMNO,
+            Style = si.STYLE,
+            StyleName = st?.STYLENAME,
+            Label = si.LABEL,
+            Color = si.COLOR,
+            ColorDesc = c?.COLORDESC,
+            Dimension = si.DIMENSION,
+            DimensionDesc = d?.DIMENSIONDESC,
+            Size = si.SIZE,
+            SizeDesc = s?.SIZEDESC,
+            ProdLineQty = (int?)pod.PRODLINEQTY,
+            UOM = pod.UOM,
+            DetailShipDate = pod.SHIPDATE.ToString("MM/dd/yyyy"),
+            DtlDueDate = pod.DUEDATE.ToString("MM/dd/yyyy"),
+            OrderNoCompany = poh.ORDERNOCOMPANY,
+            PONumber = piod?.WEBUDF03,
+            Warehouse = poh.WAREHOUSE,
             Consolidate = consolidate,
             Message = ""
         };
-
-        return ToCsv(result);
     }
 
     private string ToCsv(dynamic item)
