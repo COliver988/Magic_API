@@ -2,6 +2,7 @@ using CsvHelper;
 using Microsoft.EntityFrameworkCore;
 using MWW_Api.Config;
 using MWW_Api.Models.Shopfloor;
+using System.Net.Mime;
 using System.Text;
 
 namespace MWW_MagicAPI.Services;
@@ -39,9 +40,17 @@ public class FixBatchService : IFixBatchService
         public string Message { get; set; }
     }
 
-    private string[] _workOrderHeaderUnits = {
-            "Workorder", "Batch", "Seq", "Quantity", "Unit", "Thumbnail", "Content", "Flag"
-        };
+    private record WorkOrderUnitData
+    {
+        public string Workorder { get; set; }
+        public string Batch { get; set; }
+        public int Seq { get; set; }
+        public int Quantity { get; set; }
+        public string Unit { get; set; }
+        public string Thumbnail { get; set; }
+        public string Content { get; set; }
+        public string Flag { get; set; }
+    }
 
     private record MagicUnit
     {
@@ -67,7 +76,7 @@ public class FixBatchService : IFixBatchService
         foreach (MagicUnit unit in missingUnits)
             workorderData.Add(await batchUnitValues(unit.ProdNoCompany, unit.OpenSeq.Value));
         write_to_workorder_file(workorderData);
-        write_to_workorder_units_file(batchId);
+        await write_to_workorder_units_file(batchId);
 
         return null;
     }
@@ -97,40 +106,36 @@ public class FixBatchService : IFixBatchService
         }
     }
 
-    private async void write_to_workorder_units_file(string batchId)
+    private async Task write_to_workorder_units_file(string batchId)
     {
-        string headerLine = string.Join(",", _workOrderHeaderUnits);
         string filePath = Path.Combine(AppContext.BaseDirectory, "Import", $"WorkorderUnits_{batchId}.csv");
         Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
-        List<string> unitData  = await GetFormattedPrintDetails(batchId); 
+        List<WorkOrderUnitData> unitData  = await GetFormattedPrintDetails(batchId); 
 
         using (StreamWriter writer = new StreamWriter(filePath, false, Encoding.UTF8))
+        using (var csv = new CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture))
         {
-            writer.WriteLine(headerLine);
-            foreach (string unitDataLine in unitData)
-                writer.WriteLine(unitDataLine);
+                csv.WriteRecords(unitData);
         }
     }
 
-    public async Task<List<string>> GetFormattedPrintDetails(string batchId)
+    private async Task<List<WorkOrderUnitData>> GetFormattedPrintDetails(string batchId)
     {
-        var result = (from dpd in _magicDbContext.DyePrintDetails
+        return await (from dpd in _magicDbContext.DyePrintDetails
                       join ack in _magicDbContext.ExentaPOLinesWithAckNos
                           on new { dpd.PO, LineNo = (int)dpd.Ln_No } equals new { ack.PO, LineNo = ack.LN_NO }
                       where dpd.BatchID == batchId
                             && !new[] { "queue", "ready", "pods" }.Contains(dpd.Status)
                       orderby dpd.printedOrder
-                      select new
+                      select new WorkOrderUnitData
                       {
-                          Formatted = ack.ProdNoCompany + "-" + ack.OpenSeq.ToString() + "," +
-                                      dpd.BatchID + "," +
-                                      dpd.printedOrder.ToString() + ",1," +
-                                      dpd.BatchID + "_" + dpd.printedOrder.ToString() + "," +
-                                      dpd.PO + "_" + dpd.printedOrder.ToString() + ".jpg,,I"
-                      }).ToList();
-
-        return result.Select(r => r.Formatted).ToList();
-
+                          Workorder = ack.ProdNoCompany + "-" + ack.OpenSeq.ToString(),
+                          Batch = dpd.BatchID,
+                          Seq = (int)dpd.printedOrder,
+                          Unit = $"{dpd.BatchID}_{dpd.printedOrder}",
+                          Content =  $"{dpd.PO}_{dpd.printedOrder}.jpg",
+                          Flag = "I"
+                      }).ToListAsync();
     }
 
     private async Task<List<MagicUnit>> getMissingBatches(string batchId)
@@ -290,45 +295,6 @@ public class FixBatchService : IFixBatchService
             Consolidate = consolidate,
             Message = ""
         };
-    }
-
-    private string ToCsv(dynamic item)
-    {
-        var values = new[]
-        {
-        item.PRODSTAGENO?.ToString(),
-        item.PRODNOCOMPANY?.ToString(),
-        item.OPENSEQ?.ToString(),
-        item.ITEMNO?.ToString(),
-        item.STYLE?.ToString(),
-        item.STYLENAME?.ToString(),
-        item.LABEL?.ToString(),
-        item.COLOR?.ToString(),
-        item.COLORDESC?.ToString(),
-        item.DIMENSION?.ToString(),
-        item.DIMENSIONDESC?.ToString(),
-        item.SIZE?.ToString(),
-        item.SIZEDESC?.ToString(),
-        item.PRODLINEQTY?.ToString(),
-        item.UOM?.ToString(),
-        item.DETAILSHIPDATE?.ToString(),
-        item.DTLDUEDATE?.ToString(),
-        item.ORDERNOCOMPANY?.ToString(),
-        item.WEBUDF03?.ToString(),
-        item.WAREHOUSE?.ToString(),
-        item.Consolidate?.ToString(),
-        item.Message?.ToString()
-    };
-
-        // Escape values that contain commas, quotes, or newlines
-        var escaped = values.Select(v =>
-            string.IsNullOrEmpty(v) ? "" :
-            v.Contains(",") || v.Contains("\"") || v.Contains("\n")
-                ? $"\"{v.Replace("\"", "\"\"")}\""
-                : v
-        );
-
-        return string.Join(",", escaped);
     }
 
     private async Task<List<Dictionary<string, string>>> getExentaOrderDataAsync(int prodNoCompany)
