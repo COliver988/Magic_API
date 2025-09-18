@@ -8,11 +8,9 @@ using MWW_Api.Repositories.Exenta;
 using MWW_Api.Repositories.Magic;
 using MWW_MagicAPI.Data.Models;
 using MWW_MagicAPI.Services;
-using System.Text;
-using Serilog;
 using Prometheus;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+using Serilog;
+using System.Text;
 
 
 var configuration = new ConfigurationBuilder()

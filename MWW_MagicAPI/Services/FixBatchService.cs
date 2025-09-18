@@ -55,10 +55,26 @@ public class FixBatchService : IFixBatchService
         _context = _contextFactory.GetContext(batchId);
         List<MagicUnit> missingUnits = await getMissingBatches(batchId);
         if (!missingUnits.Any()) return null;
+        var semaphore = new SemaphoreSlim(10); // Limit to 10 concurrent tasks
         var tasks = new List<Task<WorkOrderDataDTO?>>();
-        foreach (MagicUnit unit in missingUnits)
-            tasks.Add(_getBatchUnitValues.GetBatchUnitValue(unit.ProdNoCompany, unit.OpenSeq.Value));
+
+        foreach (var unit in missingUnits)
+        {
+            tasks.Add(Task.Run(async () =>
+            {
+                await semaphore.WaitAsync();
+                try
+                {
+                    return await _getBatchUnitValues.GetBatchUnitValue(unit.ProdNoCompany, unit.OpenSeq.Value);
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            }));
+        }
         WorkOrderDataDTO?[] results = await Task.WhenAll(tasks);
+
         List<WorkOrderDataDTO> workorderData = results
             .Where(dto => dto != null)
             .Select(dto => dto!)
