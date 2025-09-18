@@ -38,6 +38,7 @@ try
     builder.Services.AddScoped<ICustomerBOLShipmentRepository, CustomerBOLShipmentRepository>();
     builder.Services.AddScoped<IInvoiceOrderHeaderRepository, InvoiceOrderHeaderRepository>();
     builder.Services.AddScoped<IOrderHeaderRepository, OrderHeaderRepository>();
+    builder.Services.AddScoped<IGetBatchUnitValues, GetBatchUnitValues>();
 
     // Magic
     builder.Services.AddScoped<IDapPartnersRepository, DapPartnersRepository>();

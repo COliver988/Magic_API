@@ -2,6 +2,8 @@ using CsvHelper;
 using Microsoft.EntityFrameworkCore;
 using MWW_Api.Config;
 using MWW_Api.Models.Shopfloor;
+using MWW_Api.Repositories.Exenta;
+using MWW_MagicAPI.Data.Models.DTO ;
 using System.Net.Mime;
 using System.Text;
 
@@ -12,33 +14,9 @@ public class FixBatchService : IFixBatchService
     private readonly IShopfloorDbContextFactory _contextFactory;
     private readonly ExentaDbContext _exentaContext;
     private readonly MagicDbContext _magicDbContext;
+    private IGetBatchUnitValues _getBatchUnitValues;
     private ShopfloorDbContext _context;
-
-    private record WorkOrderData
-    {
-        public int ProdStageNo { get; set; }
-        public int ProdNoCompany { get; set; }
-        public int OpenSeq { get; set; }
-        public int ItemNo { get; set; }
-        public string Style { get; set; }
-        public string StyleName { get; set; }
-        public string Label { get; set; }
-        public string Color { get; set; }
-        public string ColorDesc { get; set; }
-        public string Dimension { get; set; }
-        public string DimensionDesc { get; set; }
-        public string Size { get; set; }
-        public string SizeDesc { get; set; }
-        public int? ProdLineQty { get; set; }
-        public string UOM { get; set; }
-        public string DetailShipDate { get; set; }
-        public string DtlDueDate { get; set; }
-        public int OrderNoCompany { get; set; }
-        public string PONumber { get; set; }
-        public string Warehouse { get; set; }
-        public string Consolidate { get; set; }
-        public string Message { get; set; }
-    }
+    private string _timeStamp;
 
     private record WorkOrderUnitData
     {
@@ -60,11 +38,16 @@ public class FixBatchService : IFixBatchService
         public int PrintOrder { get; set; }
     }
 
-    public FixBatchService(IShopfloorDbContextFactory contextFactory, ExentaDbContext exentaContext, MagicDbContext magicDbContext)
+    public FixBatchService(IShopfloorDbContextFactory contextFactory,
+        ExentaDbContext exentaContext,
+        MagicDbContext magicDbContext,
+        IGetBatchUnitValues getBatchUnitValues)
     {
         _contextFactory = contextFactory;
         _exentaContext = exentaContext;
         _magicDbContext = magicDbContext;
+        _getBatchUnitValues = getBatchUnitValues;
+        _timeStamp = DateTime.Now.ToString("MMddyyyyHHmmss");
     }
 
     public async Task<List<Unit>> GetMissingBatches(string batchId)
@@ -72,9 +55,15 @@ public class FixBatchService : IFixBatchService
         _context = _contextFactory.GetContext(batchId);
         List<MagicUnit> missingUnits = await getMissingBatches(batchId);
         if (!missingUnits.Any()) return null;
-        List<WorkOrderData> workorderData = new List<WorkOrderData>();
+        var tasks = new List<Task<WorkOrderDataDTO?>>();
         foreach (MagicUnit unit in missingUnits)
-            workorderData.Add(await batchUnitValues(unit.ProdNoCompany, unit.OpenSeq.Value));
+            tasks.Add(_getBatchUnitValues.GetBatchUnitValue(unit.ProdNoCompany, unit.OpenSeq.Value));
+        WorkOrderDataDTO?[] results = await Task.WhenAll(tasks);
+        List<WorkOrderDataDTO> workorderData = results
+            .Where(dto => dto != null)
+            .Select(dto => dto!)
+            .ToList();
+
         write_to_workorder_file(workorderData);
         await write_to_workorder_units_file(batchId);
 
@@ -85,7 +74,7 @@ public class FixBatchService : IFixBatchService
     /// write to file; 1st to temp file, then move to final location to prevent hot folder grabbing incomplete file
     /// </summary>
     /// <param name="workorderFileData"></param>
-    private void write_to_workorder_file(List<WorkOrderData> workorderData)
+    private void write_to_workorder_file(List<WorkOrderDataDTO> workorderData)
     {
         string tempFilePath = Path.Combine(Path.GetTempFileName());
         using (StreamWriter writer = new StreamWriter(tempFilePath, false, Encoding.UTF8))
@@ -97,7 +86,7 @@ public class FixBatchService : IFixBatchService
         // mive to final location and cleanup
         if (File.Exists(tempFilePath))
         {
-            string finalFilePath = Path.Combine(AppContext.BaseDirectory, "Import", "Workorders.csv");
+            string finalFilePath = Path.Combine(AppContext.BaseDirectory, "Import", $"MWW-{_timeStamp}-Workorder.Exenta");
             Directory.CreateDirectory(Path.GetDirectoryName(finalFilePath)!);
             if (File.Exists(finalFilePath))
                 File.Delete(finalFilePath);
@@ -108,14 +97,23 @@ public class FixBatchService : IFixBatchService
 
     private async Task write_to_workorder_units_file(string batchId)
     {
-        string filePath = Path.Combine(AppContext.BaseDirectory, "Import", $"WorkorderUnits_{batchId}.csv");
-        Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+        string tempFilePath = Path.Combine(Path.GetTempFileName());
+        Directory.CreateDirectory(Path.GetDirectoryName(tempFilePath)!);
         List<WorkOrderUnitData> unitData  = await GetFormattedPrintDetails(batchId); 
 
-        using (StreamWriter writer = new StreamWriter(filePath, false, Encoding.UTF8))
+        using (StreamWriter writer = new StreamWriter(tempFilePath, false, Encoding.UTF8))
         using (var csv = new CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture))
         {
                 csv.WriteRecords(unitData);
+        }
+        if (File.Exists(tempFilePath))
+        {
+            string finalFilePath = Path.Combine(AppContext.BaseDirectory, "Import", $"{batchId}-WorkorderUnits.MWW");
+            Directory.CreateDirectory(Path.GetDirectoryName(finalFilePath)!);
+            if (File.Exists(finalFilePath))
+                File.Delete(finalFilePath);
+            File.Move(tempFilePath, finalFilePath);
+            File.Delete(tempFilePath);
         }
     }
 
@@ -134,6 +132,7 @@ public class FixBatchService : IFixBatchService
                           Seq = (int)dpd.printedOrder,
                           Unit = $"{dpd.BatchID}_{dpd.printedOrder}",
                           Content =  $"{dpd.PO}_{dpd.printedOrder}.jpg",
+                          Quantity = 1,
                           Flag = "I"
                       }).ToListAsync();
     }
@@ -156,9 +155,9 @@ public class FixBatchService : IFixBatchService
         return filteredMagicUnits;
     }
 
-    private Task<List<Unit>> getUnitsFromShopfloor(string batchId)
+    private async Task<List<Unit>> getUnitsFromShopfloor(string batchId)
     {
-        var units = _context.Units
+        var units = await _context.Units
             .Where(u => u.BatchId == batchId)
             .AsNoTracking()
             .ToListAsync();
@@ -189,112 +188,6 @@ public class FixBatchService : IFixBatchService
             .ToList();
 
         return magicUnits;
-    }
-
-    private async Task<WorkOrderData> batchUnitValues(int prodNoCompany, int openSeq)
-    {
-        List<Dictionary<string, string>> exentaData = await getExentaOrderDataAsync(prodNoCompany);
-        string consolidate = goesToConsolidation(exentaData);
-        return  await getExentaUnitDataAsync(prodNoCompany, openSeq, consolidate);
-    }
-
-    private string goesToConsolidation(List<Dictionary<string, string>> exentaData)
-    {
-        if (exentaData.Count > 1 ||
-            exentaData.Any(d => d.TryGetValue("orderorigin", out var origin) && origin.Contains("STS")) ||
-            exentaData.Any(d => d.TryGetValue("prodlineqty", out var qtyStr) &&
-                                     double.TryParse(qtyStr, out var qty) && qty > 1.0))
-        {
-            return "Y";
-        }
-        else
-        {
-            return "N";
-        }
-    }
-
-    private async Task<WorkOrderData> getExentaUnitDataAsync(int prodNoCompany, int sequence, string consolidate)
-    {
-        // Step 1: Get ProdOrderHeader
-        var poh = await _exentaContext.ProdOrderHeaders
-            .AsNoTracking()
-            .FirstOrDefaultAsync(h => h.PRODNOCOMPANY == prodNoCompany);
-
-        if (poh == null) return null;
-
-        // Step 2: Get ProdOrderDetail
-        var pod = await _exentaContext.ProdOrderDetails
-            .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.PRODSTAGENO == 1 && p.OPENSEQ == sequence && p.PRODNO == poh.PRODNO);
-
-        if (pod == null) return null;
-
-
-        // Step 3: Get PickOrderHeader
-        var pioh = await _exentaContext.PickOrderHeaders
-            .AsNoTracking()
-            .FirstOrDefaultAsync(ph => ph.ORDERNO == poh.ORDERNO);
-
-        // Step 4: Get PickOrderDetail
-        var piod = pioh != null
-            ? await _exentaContext.PickOrderDetails
-                .AsNoTracking()
-                .FirstOrDefaultAsync(pd => pd.PICKNO == pioh.PICKNO && pd.SEQUENCE == pod.ORDERSEQ)
-            : null;
-
-        // Step 5: Get StyleItem
-        var si = await _exentaContext.StyleItems
-            .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.ITEMNO == pod.ITEMNO);
-
-        if (si == null) return null;
-
-        // Step 6: Get Style
-        var st = await _exentaContext.Styles
-            .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.STYLE == si.STYLE);
-
-        // Step 7: Get Size (optional)
-        var s = !string.IsNullOrEmpty(si.SIZE)
-            ? await _exentaContext.Sizes.AsNoTracking().FirstOrDefaultAsync(sz => sz.SIZE == si.SIZE)
-            : null;
-
-        // Step 8: Get Dimension (optional)
-        var d = !string.IsNullOrEmpty(si.DIMENSION)
-            ? await _exentaContext.Dimensions.AsNoTracking().FirstOrDefaultAsync(dim => dim.DIMENSION == si.DIMENSION)
-            : null;
-
-        // Step 9: Get Color (optional)
-        var c = !string.IsNullOrEmpty(si.COLOR)
-            ? await _exentaContext.Colors.AsNoTracking().FirstOrDefaultAsync(col => col.COLOR == si.COLOR)
-            : null;
-
-        // Step 10: Project the result
-        return new WorkOrderData
-        {
-            ProdStageNo = pod.PRODSTAGENO,
-            ProdNoCompany = poh.PRODNOCOMPANY,
-            OpenSeq = pod.OPENSEQ,
-            ItemNo = pod.ITEMNO,
-            Style = si.STYLE,
-            StyleName = st?.STYLENAME,
-            Label = si.LABEL,
-            Color = si.COLOR,
-            ColorDesc = c?.COLORDESC,
-            Dimension = si.DIMENSION,
-            DimensionDesc = d?.DIMENSIONDESC,
-            Size = si.SIZE,
-            SizeDesc = s?.SIZEDESC,
-            ProdLineQty = (int?)pod.PRODLINEQTY,
-            UOM = pod.UOM,
-            DetailShipDate = pod.SHIPDATE.ToString("MM/dd/yyyy"),
-            DtlDueDate = pod.DUEDATE.ToString("MM/dd/yyyy"),
-            OrderNoCompany = poh.ORDERNOCOMPANY,
-            PONumber = piod?.WEBUDF03,
-            Warehouse = poh.WAREHOUSE,
-            Consolidate = consolidate,
-            Message = ""
-        };
     }
 
     private async Task<List<Dictionary<string, string>>> getExentaOrderDataAsync(int prodNoCompany)
