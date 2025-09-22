@@ -50,11 +50,26 @@ public class FixBatchService : IFixBatchService
         _timeStamp = DateTime.Now.ToString("MMddyyyyHHmmss");
     }
 
-    public async Task<List<Unit>> GetMissingBatches(string batchId)
+    public async Task<List<Unit>?> GetMissingBatches(string batchId)
     {
+        // get the correct Shopfloor context
         _context = _contextFactory.GetContext(batchId);
+        List<WorkOrderDataDTO> workorderData = await gatherWorkorderData(batchId);
+        write_to_workorder_file(workorderData);
+        await write_to_workorder_units_file(batchId);
+
+        return null;
+    }
+
+    private async Task<List<WorkOrderDataDTO>> gatherWorkorderData(string batchId)
+    {
         List<MagicUnit> missingUnits = await getMissingBatches(batchId);
         if (!missingUnits.Any()) return null;
+        return await getWorkorderData(missingUnits);
+    }
+
+    private async Task<List<WorkOrderDataDTO>> getWorkorderData(List<MagicUnit> missingUnits)
+    {
         var semaphore = new SemaphoreSlim(10); // Limit to 10 concurrent tasks
         var tasks = new List<Task<WorkOrderDataDTO?>>();
 
@@ -75,15 +90,10 @@ public class FixBatchService : IFixBatchService
         }
         WorkOrderDataDTO?[] results = await Task.WhenAll(tasks);
 
-        List<WorkOrderDataDTO> workorderData = results
+        return results
             .Where(dto => dto != null)
             .Select(dto => dto!)
             .ToList();
-
-        write_to_workorder_file(workorderData);
-        await write_to_workorder_units_file(batchId);
-
-        return null;
     }
 
     /// <summary>
@@ -205,34 +215,4 @@ public class FixBatchService : IFixBatchService
 
         return magicUnits;
     }
-
-    private async Task<List<Dictionary<string, string>>> getExentaOrderDataAsync(int prodNoCompany)
-    {
-        // Optional: Begin a transaction with ReadUncommitted isolation
-        using var transaction = await _exentaContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadUncommitted);
-
-        var query = from poh in _exentaContext.ProdOrderHeaders
-                    join pod in _exentaContext.ProdOrderDetails
-                        on poh.PKEY equals pod.FKEY
-                    join oh in _exentaContext.OrderHeaders
-                        on poh.ORDERNO equals oh.ORDERNO
-                    where pod.PRODSTAGE == "MAKE" && poh.PRODNOCOMPANY == prodNoCompany
-                    select new
-                    {
-                        oh.ORDERORIGIN,
-                        pod.PRODLINEQTY
-                    };
-
-        var result = await query
-            .Select(e => new Dictionary<string, string>
-            {
-            { "orderorigin", e.ORDERORIGIN.Trim() ?? "" },
-            { "prodlineqty", e.PRODLINEQTY.ToString().Trim() ?? "" }
-            })
-            .ToListAsync();
-
-        await transaction.CommitAsync();
-        return result;
-    }
-
 }
