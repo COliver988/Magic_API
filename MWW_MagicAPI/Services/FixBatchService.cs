@@ -50,7 +50,7 @@ public class FixBatchService : IFixBatchService
         _timeStamp = DateTime.Now.ToString("MMddyyyyHHmmss");
     }
 
-    public async Task<List<Unit>?> GetMissingBatches(string batchId)
+    public async Task<List<WorkOrderDataDTO>?> GetMissingBatches(string batchId)
     {
         // get the correct Shopfloor context
         _context = _contextFactory.GetContext(batchId);
@@ -58,7 +58,7 @@ public class FixBatchService : IFixBatchService
         write_to_workorder_file(workorderData);
         await write_to_workorder_units_file(batchId);
 
-        return null;
+        return workorderData;
     }
 
     private async Task<List<WorkOrderDataDTO>> gatherWorkorderData(string batchId)

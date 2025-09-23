@@ -1,12 +1,16 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MWW_Api.Config;
 using MWW_MagicAPI.Data.Models.DTO;
+using Prometheus;
 
 namespace MWW_Api.Repositories.Exenta;
 
 public class GetBatchUnitValues : IGetBatchUnitValues
 {
     private readonly IServiceScopeFactory _serviceScopeFactory;
+    private static readonly Histogram MethodDuration = Metrics
+       .CreateHistogram("getExentaOrderDataAsync",
+                        "Tracks the duration of getExentaOrderDataAsync in seconds.");
 
     public GetBatchUnitValues(IServiceScopeFactory serviceScopeFactory)
     {
@@ -25,7 +29,8 @@ public class GetBatchUnitValues : IGetBatchUnitValues
 
         var exentaData = await getExentaOrderDataAsync(exentaContext, prodNoCompany);
         var consolidate = goesToConsolidation(exentaData);
-        return await getExentaUnitDataAsync(exentaContext, prodNoCompany, sequence, consolidate);
+        using (MethodDuration.NewTimer())
+            return await getExentaUnitDataAsync(exentaContext, prodNoCompany, sequence, consolidate);
     }
 
     private async Task<List<Dictionary<string, string>>> getExentaOrderDataAsync(ExentaDbContext exentaContext, int prodNoCompany)
