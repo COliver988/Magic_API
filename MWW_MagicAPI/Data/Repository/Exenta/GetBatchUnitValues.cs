@@ -25,37 +25,38 @@ public class GetBatchUnitValues : IGetBatchUnitValues
 
         var exentaData = await getExentaOrderDataAsync(exentaContext, prodNoCompany);
         var consolidate = goesToConsolidation(exentaData);
-        using (MethodDuration.NewTimer())
-            return await getExentaUnitDataAsync(exentaContext, prodNoCompany, sequence, consolidate);
+        return await getExentaUnitDataAsync(exentaContext, prodNoCompany, sequence, consolidate);
     }
 
     private async Task<List<Dictionary<string, string>>> getExentaOrderDataAsync(ExentaDbContext exentaContext, int prodNoCompany)
     {
-        // Optional: Begin a transaction with ReadUncommitted isolation
-        using var transaction = await exentaContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadUncommitted);
+        using (MethodDuration.NewTimer())
+        {
+            using var transaction = await exentaContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadUncommitted);
 
-        var query = from poh in exentaContext.ProdOrderHeaders
-                    join pod in exentaContext.ProdOrderDetails
-                        on poh.PKEY equals pod.FKEY
-                    join oh in exentaContext.OrderHeaders
-                        on poh.ORDERNO equals oh.ORDERNO
-                    where pod.PRODSTAGE == "MAKE" && poh.PRODNOCOMPANY == prodNoCompany
-                    select new
-                    {
-                        oh.ORDERORIGIN,
-                        pod.PRODLINEQTY
-                    };
+            var query = from poh in exentaContext.ProdOrderHeaders
+                        join pod in exentaContext.ProdOrderDetails
+                            on poh.PKEY equals pod.FKEY
+                        join oh in exentaContext.OrderHeaders
+                            on poh.ORDERNO equals oh.ORDERNO
+                        where pod.PRODSTAGE == "MAKE" && poh.PRODNOCOMPANY == prodNoCompany
+                        select new
+                        {
+                            oh.ORDERORIGIN,
+                            pod.PRODLINEQTY
+                        };
 
-        var result = await query
-            .Select(e => new Dictionary<string, string>
-            {
+            var result = await query
+                .Select(e => new Dictionary<string, string>
+                {
             { "orderorigin", e.ORDERORIGIN.Trim() ?? "" },
             { "prodlineqty", e.PRODLINEQTY.ToString().Trim() ?? "" }
-            })
-            .ToListAsync();
+                })
+                .ToListAsync();
 
-        await transaction.CommitAsync();
-        return result;
+            await transaction.CommitAsync();
+            return result;
+        }
     }
 
     private async Task<WorkOrderDataDTO> getExentaUnitDataAsync(ExentaDbContext exentaContext, int prodNoCompany, int sequence, string consolidate)

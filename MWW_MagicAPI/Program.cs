@@ -126,9 +126,9 @@ try
         app.UseDeveloperExceptionPage();
     }
 
-    app.UseHsts();
-    app.UseMetricServer();
+    //app.UseHsts();
     app.UseHttpMetrics();
+    app.UseMetricServer();
     app.UseHttpsRedirection();
 
     app.UseAuthentication();
