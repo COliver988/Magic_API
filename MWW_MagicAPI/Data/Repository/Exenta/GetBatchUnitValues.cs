@@ -7,6 +7,7 @@ namespace MWW_Api.Repositories.Exenta;
 
 public class GetBatchUnitValues : IGetBatchUnitValues
 {
+    // note: passing in context factory so we can run in parallel 
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private static readonly Histogram MethodDuration = Metrics
        .CreateHistogram("getExentaOrderDataAsync",
@@ -15,11 +16,6 @@ public class GetBatchUnitValues : IGetBatchUnitValues
     public GetBatchUnitValues(IServiceScopeFactory serviceScopeFactory)
     {
         _serviceScopeFactory = serviceScopeFactory;
-    }
-
-    public GetBatchUnitValues(int prodNoCompany, int sequence)
-    {
-        var scope = _serviceScopeFactory.CreateScope();
     }
 
     public async Task<WorkOrderDataDTO?> GetBatchUnitValue(int prodNoCompany, int sequence)

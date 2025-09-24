@@ -3,8 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using MWW_Api.Config;
 using MWW_Api.Models.Shopfloor;
 using MWW_Api.Repositories.Exenta;
-using MWW_MagicAPI.Data.Models.DTO ;
-using System.Net.Mime;
+using MWW_MagicAPI.Data.Models.DTO;
 using System.Text;
 
 namespace MWW_MagicAPI.Services;
