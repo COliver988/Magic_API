@@ -27,6 +27,9 @@ public class FixBatchService : IFixBatchService
         public string Thumbnail { get; set; }
         public string Content { get; set; }
         public string Flag { get; set; }
+        public string ProductId { get; set; }
+        public string Size { get; set; }
+        public string SizeDesc { get; set; }
     }
 
     private record MagicUnit
@@ -156,9 +159,9 @@ public class FixBatchService : IFixBatchService
                           Batch = dpd.BatchID,
                           Seq = (int)dpd.printedOrder,
                           Unit = $"{dpd.BatchID}_{dpd.printedOrder}",
-                          Content =  $"{dpd.PO}_{dpd.printedOrder}.jpg",
+                          Thumbnail = $"{dpd.PO}_{dpd.printedOrder}.jpg",
                           Quantity = 1,
-                          Flag = "I"
+                          Flag = "I",
                       }).ToListAsync();
     }
 
