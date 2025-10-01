@@ -42,5 +42,3 @@ updates:
         version: ["9.x"]
       - dependency-name: "Swashbuckle.AspNetCore        
         version: ["9.x"]
-      - dependency-name: "Microsoft.EntityFrameworkCore and Npgsql.EntityFrameworkCore.PostgreSQL"
-        version: ["9.x"]
