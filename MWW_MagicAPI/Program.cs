@@ -56,7 +56,7 @@ try
     builder.Services.AddDbContext<ShopfloorTJDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:ShopfloorTJ")));
     builder.Services.AddDbContext<ShopfloorGMDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:ShopfloorGM")));
 
-    // factgories and services
+    // factories and services
     builder.Services.AddScoped<IShopfloorDbContextFactory, ShopfloorDbContextFactory>();
     builder.Services.AddScoped<IFixBatchService, FixBatchService>();
 

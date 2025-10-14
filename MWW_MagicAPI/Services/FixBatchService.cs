@@ -1,9 +1,11 @@
 using CsvHelper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using MWW_Api.Config;
 using MWW_Api.Models.Shopfloor;
 using MWW_Api.Repositories.Exenta;
 using MWW_MagicAPI.Data.Models.DTO;
+using System;
 using System.Text;
 
 namespace MWW_MagicAPI.Services;
@@ -11,44 +13,24 @@ namespace MWW_MagicAPI.Services;
 public class FixBatchService : IFixBatchService
 {
     private readonly IShopfloorDbContextFactory _contextFactory;
+    private IConfiguration _configuration;
     private readonly ExentaDbContext _exentaContext;
     private readonly MagicDbContext _magicDbContext;
     private IGetBatchUnitValues _getBatchUnitValues;
     private ShopfloorDbContext _context;
     private string _timeStamp;
 
-    private record WorkOrderUnitData
-    {
-        public string Workorder { get; set; }
-        public string Batch { get; set; }
-        public int Seq { get; set; }
-        public int Quantity { get; set; }
-        public string Unit { get; set; }
-        public string Thumbnail { get; set; }
-        public string Content { get; set; }
-        public string Flag { get; set; }
-        public string ProductId { get; set; }
-        public string Size { get; set; }
-        public string SizeDesc { get; set; }
-    }
-
-    private record MagicUnit
-    {
-        public int ProdNoCompany { get; set; }
-        public int? OpenSeq { get; set; }
-        public string BatchID { get; set; }
-        public int PrintOrder { get; set; }
-    }
-
     public FixBatchService(IShopfloorDbContextFactory contextFactory,
         ExentaDbContext exentaContext,
         MagicDbContext magicDbContext,
-        IGetBatchUnitValues getBatchUnitValues)
+        IGetBatchUnitValues getBatchUnitValues,
+        IConfiguration configuration)
     {
         _contextFactory = contextFactory;
         _exentaContext = exentaContext;
         _magicDbContext = magicDbContext;
         _getBatchUnitValues = getBatchUnitValues;
+        _configuration = configuration;
         _timeStamp = DateTime.Now.ToString("MMddyyyyHHmmss");
     }
 
@@ -57,7 +39,7 @@ public class FixBatchService : IFixBatchService
         // get the correct Shopfloor context
         _context = _contextFactory.GetContext(batchId);
         List<WorkOrderDataDTO> workorderData = await gatherWorkorderData(batchId);
-        write_to_workorder_file(workorderData);
+        write_to_workorder_file(workorderData, batchId);
         await write_to_workorder_units_file(batchId);
 
         return workorderData;
@@ -102,7 +84,7 @@ public class FixBatchService : IFixBatchService
     /// write to file; 1st to temp file, then move to final location to prevent hot folder grabbing incomplete file
     /// </summary>
     /// <param name="workorderFileData"></param>
-    private void write_to_workorder_file(List<WorkOrderDataDTO> workorderData)
+    private void write_to_workorder_file(List<WorkOrderDataDTO> workorderData, string batchId)
     {
         string tempFilePath = Path.Combine(Path.GetTempFileName());
         using (StreamWriter writer = new StreamWriter(tempFilePath, false, Encoding.UTF8))
@@ -114,7 +96,7 @@ public class FixBatchService : IFixBatchService
         // mive to final location and cleanup
         if (File.Exists(tempFilePath))
         {
-            string finalFilePath = Path.Combine(AppContext.BaseDirectory, "Import", $"MWW-{_timeStamp}-Workorder.Exenta");
+            string finalFilePath = Path.Combine($"{getPath(batchId)}", $"MWW-{_timeStamp}-Workorder.Exenta");
             Directory.CreateDirectory(Path.GetDirectoryName(finalFilePath)!);
             if (File.Exists(finalFilePath))
                 File.Delete(finalFilePath);
@@ -127,16 +109,16 @@ public class FixBatchService : IFixBatchService
     {
         string tempFilePath = Path.Combine(Path.GetTempFileName());
         Directory.CreateDirectory(Path.GetDirectoryName(tempFilePath)!);
-        List<WorkOrderUnitData> unitData  = await GetFormattedPrintDetails(batchId); 
+        List<WorkOrderUnitData> unitData = await GetFormattedPrintDetails(batchId);
 
         using (StreamWriter writer = new StreamWriter(tempFilePath, false, Encoding.UTF8))
         using (var csv = new CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture))
         {
-                csv.WriteRecords(unitData);
+            csv.WriteRecords(unitData);
         }
         if (File.Exists(tempFilePath))
         {
-            string finalFilePath = Path.Combine(AppContext.BaseDirectory, "Import", $"{batchId}-WorkorderUnits.MWW");
+            string finalFilePath =  Path.Combine($"{getPath(batchId)}", $"{batchId}-WorkorderUnits.MWW");
             Directory.CreateDirectory(Path.GetDirectoryName(finalFilePath)!);
             if (File.Exists(finalFilePath))
                 File.Delete(finalFilePath);
@@ -216,5 +198,14 @@ public class FixBatchService : IFixBatchService
             .ToList();
 
         return magicUnits;
+    }
+
+    private string getPath(string batchID)
+    {
+        var shopfloor = _configuration.GetSection("Shopfloor");
+        string path = shopfloor?[batchID.Substring(0, 2).ToLower()];
+        if (path.IsNullOrEmpty())
+            path = shopfloor?["mww"];
+        return path;
     }
 }
