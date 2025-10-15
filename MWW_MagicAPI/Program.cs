@@ -8,9 +8,9 @@ using MWW_Api.Repositories.Exenta;
 using MWW_Api.Repositories.Magic;
 using MWW_MagicAPI.Data.Models;
 using MWW_MagicAPI.Services;
-using System.Text;
-using Serilog;
 using Prometheus;
+using Serilog;
+using System.Text;
 
 
 var configuration = new ConfigurationBuilder()
@@ -36,6 +36,7 @@ try
     builder.Services.AddScoped<ICustomerBOLShipmentRepository, CustomerBOLShipmentRepository>();
     builder.Services.AddScoped<IInvoiceOrderHeaderRepository, InvoiceOrderHeaderRepository>();
     builder.Services.AddScoped<IOrderHeaderRepository, OrderHeaderRepository>();
+    builder.Services.AddScoped<IGetBatchUnitValues, GetBatchUnitValues>();
 
     // Magic
     builder.Services.AddScoped<IDapPartnersRepository, DapPartnersRepository>();
@@ -48,6 +49,17 @@ try
     builder.Services.AddDbContext<MagicDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Magic")));
     builder.Services.AddDbContext<ExentaDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Exenta")));
     builder.Services.AddDbContext<SerilogDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Database:Serilog")));
+    
+    // Shopfloor
+    builder.Services.AddDbContext<ShopfloorHVDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:ShopfloorHV")));
+    builder.Services.AddDbContext<ShopfloorPDDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:ShopfloorPD")));
+    builder.Services.AddDbContext<ShopfloorTJDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:ShopfloorTJ")));
+    builder.Services.AddDbContext<ShopfloorGMDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:ShopfloorGM")));
+
+    // factories and services
+    builder.Services.AddScoped<IShopfloorDbContextFactory, ShopfloorDbContextFactory>();
+    builder.Services.AddScoped<IFixBatchService, FixBatchService>();
+
 
 
     // Add configuration from appsettings.json or other sources
@@ -66,6 +78,22 @@ try
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:Magic")),
            HealthStatus.Unhealthy,
            new string[] { "Magic DB", "Database" })
+       .AddCheck("Shopfloor Hendersonville",
+           new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:ShopfloorHV")),
+           HealthStatus.Unhealthy,
+           new string[] { "Shopfloor Hendersonville", "Database" })
+       .AddCheck("Shopfloor Spindale",
+           new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:ShopfloorPD")),
+           HealthStatus.Unhealthy,
+           new string[] { "Shopfloor Spindale", "Database" })
+       .AddCheck("Shopfloor Tijuana",
+           new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:ShopfloorTJ")),
+           HealthStatus.Unhealthy,
+           new string[] { "Shopfloor Tijuana", "Database" })
+       .AddCheck("Shopfloor Germany",
+           new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:ShopfloorGM")),
+           HealthStatus.Unhealthy,
+           new string[] { "Shopfloor Germany", "Database" })
        .AddCheck("Exenta DB",
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:Exenta")),
            HealthStatus.Unhealthy,
@@ -98,9 +126,9 @@ try
         app.UseDeveloperExceptionPage();
     }
 
-    app.UseHsts();
-    app.UseMetricServer();
+    //app.UseHsts();
     app.UseHttpMetrics();
+    app.UseMetricServer();
     app.UseHttpsRedirection();
 
     app.UseAuthentication();
@@ -114,6 +142,7 @@ try
     Log.Information(builder.Configuration.GetConnectionString("Database:Serilog"));
     Log.Information(builder.Configuration.GetConnectionString("Database:Magic"));
     Log.Information(builder.Configuration.GetConnectionString("Database:Exenta"));
+    Log.Information(builder.Configuration.GetConnectionString("Database:ShopfloorPD"));
 
     app.Run();
 }
