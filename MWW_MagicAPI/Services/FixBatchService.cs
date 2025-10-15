@@ -160,8 +160,6 @@ public class FixBatchService : IFixBatchService
             .OrderBy(d => d.PrintOrder)
             .ToList();
 
-        //testing!
-        filteredMagicUnits = unitsInMagic;
         return filteredMagicUnits;
     }
 
