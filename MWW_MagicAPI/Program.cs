@@ -97,7 +97,11 @@ try
        .AddCheck("Exenta DB",
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:Exenta")),
            HealthStatus.Unhealthy,
-           new string[] { "Exenta DB", "Database" });
+           new string[] { "Exenta DB", "Database" })
+       .AddCheck("Shopfloor Access",
+           new ShopfloorAccessCheck(builder.Configuration.GetValue<string>("Shopfloor:mww")),
+           HealthStatus.Degraded,
+           new string[] { "Shopfloor Access", "File System" });
 
     AuthSettings authSettings = builder.Configuration.GetSection("AuthSettings").Get<AuthSettings>();
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
