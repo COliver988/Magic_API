@@ -80,25 +80,25 @@ try
            new string[] { "Magic DB", "Database" })
        .AddCheck("Shopfloor Hendersonville",
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:ShopfloorHV")),
-           HealthStatus.Unhealthy,
+           HealthStatus.Degraded,
            new string[] { "Shopfloor Hendersonville", "Database" })
        .AddCheck("Shopfloor Spindale",
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:ShopfloorPD")),
-           HealthStatus.Unhealthy,
+           HealthStatus.Degraded,
            new string[] { "Shopfloor Spindale", "Database" })
        .AddCheck("Shopfloor Tijuana",
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:ShopfloorTJ")),
-           HealthStatus.Unhealthy,
+           HealthStatus.Degraded,
            new string[] { "Shopfloor Tijuana", "Database" })
        .AddCheck("Shopfloor Germany",
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:ShopfloorGM")),
-           HealthStatus.Unhealthy,
+           HealthStatus.Degraded,
            new string[] { "Shopfloor Germany", "Database" })
        .AddCheck("Exenta DB",
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:Exenta")),
            HealthStatus.Unhealthy,
            new string[] { "Exenta DB", "Database" })
-       .AddCheck("Shopfloor Access",
+       .AddCheck("Shopfloor File Access",
            new ShopfloorAccessCheck(builder.Configuration.GetValue<string>("Shopfloor:mww")),
            HealthStatus.Degraded,
            new string[] { "Shopfloor Access", "File System" });
