@@ -14,7 +14,7 @@ public class ShopfloorAccessCheck : IHealthCheck
     {
         try
         {
-            string testFile = System.IO.Path.Combine(_path, "test", "healthcheck.txt");
+            string testFile = System.IO.Path.Combine(_path, "Test", "healthcheck.txt");
             File.WriteAllText(testFile, DateTime.Now.ToString());
             if (File.Exists(testFile))
             {
