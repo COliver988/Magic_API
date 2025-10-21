@@ -86,6 +86,7 @@ public class FixBatchService : IFixBatchService
     /// <param name="workorderFileData"></param>
     private void write_to_workorder_file(List<WorkOrderDataDTO> workorderData, string batchId)
     {
+        if (workorderData.IsNullOrEmpty()) return;
         string tempFilePath = Path.Combine(Path.GetTempFileName());
         using (StreamWriter writer = new StreamWriter(tempFilePath, false, Encoding.UTF8))
         using (var csv = new CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture))
@@ -132,6 +133,36 @@ public class FixBatchService : IFixBatchService
         return await (from dpd in _magicDbContext.DyePrintDetails
                       join ack in _magicDbContext.ExentaPOLinesWithAckNos
                           on new { dpd.PO, LineNo = (int)dpd.Ln_No } equals new { ack.PO, LineNo = ack.LN_NO }
+                      join doh in _magicDbContext.DyePrintHeaders
+                          on dpd.PO equals doh.PO
+                      from dih in _magicDbContext.DyeItemAttributes
+                      where dpd.BatchID == batchId
+                            && !new[] { "queue", "ready", "pods" }.Contains(dpd.Status)
+                            && (doh.ItemCode == dih.MWWItemCode || doh.ItemCode == (dih.MWWItemCode + "-1"))
+                      orderby dpd.printedOrder
+                      select new WorkOrderUnitData
+                      {
+                          Workorder = ack.ProdNoCompany + "-" + ack.OpenSeq.ToString(),
+                          Batch = dpd.BatchID,
+                          Seq = (int)dpd.printedOrder,
+                          Unit = $"{dpd.BatchID}_{dpd.printedOrder}",
+                          Thumbnail = $"{dpd.PO}_{dpd.printedOrder}.jpg",
+                          Quantity = 1,
+                          Flag = "I",
+                          ProductId = dih.Style,
+                          Size = dih.Size,
+                      }).ToListAsync();
+    }
+    /*
+    private async Task<List<WorkOrderUnitData>> GetFormattedPrintDetails(string batchId)
+    {
+        return await (from dpd in _magicDbContext.DyePrintDetails
+                      join ack in _magicDbContext.ExentaPOLinesWithAckNos
+                          on new { dpd.PO, LineNo = (int)dpd.Ln_No } equals new { ack.PO, LineNo = ack.LN_NO }
+                      join doh in _magicDbContext.DyePrintHeaders
+                          on dpd.PO equals doh.PO
+                      join dih in _magicDbContext.DyeItemAttributes
+                          on doh.ItemCode equals dih.MWWItemCode
                       where dpd.BatchID == batchId
                             && !new[] { "queue", "ready", "pods" }.Contains(dpd.Status)
                       orderby dpd.printedOrder
@@ -146,6 +177,7 @@ public class FixBatchService : IFixBatchService
                           Flag = "I",
                       }).ToListAsync();
     }
+    */
 
     private async Task<List<MagicUnit>> getMissingBatches(string batchId)
     {

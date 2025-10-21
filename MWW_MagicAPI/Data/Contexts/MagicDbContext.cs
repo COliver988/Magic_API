@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MWW_Api.Models.Magic;
+using MWW_MagicAPI.Data.Models.Magic;
 
 namespace MWW_Api.Config;
 
@@ -14,6 +15,8 @@ public class MagicDbContext : DbContext
     public DbSet<UndefinedProduct> UndefinedProducts { get; set; }
     public DbSet<DyePrintDetails> DyePrintDetails { get; set; }
     public DbSet<ExentaPOLinesWithAckNo> ExentaPOLinesWithAckNos { get; set; }
+    public DbSet<DyeItemAttributes> DyeItemAttributes { get; set; }
+    public DbSet<DyePrintHeader> DyePrintHeaders { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -27,5 +30,7 @@ public class MagicDbContext : DbContext
         modelBuilder.Entity<WebAPI_Customer>().ToTable("WebAPI_Customers", schema: "dbo").HasNoKey();
         modelBuilder.Entity<DyePrintDetails>().ToTable("dyePrintDetails", schema: "dbo").HasNoKey();
         modelBuilder.Entity<ExentaPOLinesWithAckNo>().ToTable("Exenta_PO_Lines_with_AckNo", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<DyeItemAttributes>().ToTable("dyeitem_Attributes", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<DyePrintHeader>().ToTable("dyePrintHeader", schema: "dbo").HasNoKey();
     }
 }
