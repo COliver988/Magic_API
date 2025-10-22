@@ -8,11 +8,11 @@ namespace MWW_MagicAPI.Http.Controllers.Services
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class ResetWorkOrder : Controller
+    public class ResetWorkOrderController : Controller
     {
         private readonly IFixBatchService _fixBatchService;
 
-        public ResetWorkOrder(IFixBatchService fixBatchService)
+        public ResetWorkOrderController(IFixBatchService fixBatchService)
         {
             _fixBatchService = fixBatchService;
         }

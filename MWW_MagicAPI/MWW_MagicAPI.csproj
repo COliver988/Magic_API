@@ -6,6 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>b67c40cb-3046-4e97-8ffb-fd6b93cff0a5</UserSecretsId>
   </PropertyGroup>
+  <PropertyGroup>
+    <Version>
+      1.0
+      .$([System.Math]::Floor($([MSBuild]::Divide($([System.DateTimeOffset]::UtcNow.ToUnixTimeSeconds()), 86400))))
+      .$([MSBuild]::Divide($([MSBuild]::Modulo($([System.DateTimeOffset]::UtcNow.ToUnixTimeSeconds()), 86400)), 2))
+    </Version>
+  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="AspNetCore.HealthChecks.SqlServer" Version="8.0.2" />
