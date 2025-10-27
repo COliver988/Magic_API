@@ -78,27 +78,27 @@ try
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:Magic")),
            HealthStatus.Unhealthy,
            new string[] { "Magic DB", "Database" })
-       .AddCheck("Shopfloor Hendersonville",
+       .AddCheck("Shopfloor Hendersonville DB",
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:ShopfloorHV")),
            HealthStatus.Degraded,
-           new string[] { "Shopfloor Hendersonville", "Database" })
-       .AddCheck("Shopfloor Spindale",
+           new string[] { "Shopfloor Hendersonville DB", "Database" })
+       .AddCheck("Shopfloor Spindale DB",
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:ShopfloorPD")),
            HealthStatus.Degraded,
-           new string[] { "Shopfloor Spindale", "Database" })
-       .AddCheck("Shopfloor Tijuana",
+           new string[] { "Shopfloor Spindale DB", "Database" })
+       .AddCheck("Shopfloor Tijuana DB",
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:ShopfloorTJ")),
            HealthStatus.Degraded,
-           new string[] { "Shopfloor Tijuana", "Database" })
-       .AddCheck("Shopfloor Germany",
+           new string[] { "Shopfloor Tijuana DB", "Database" })
+       .AddCheck("Shopfloor Germany DB",
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:ShopfloorGM")),
            HealthStatus.Degraded,
-           new string[] { "Shopfloor Germany", "Database" })
+           new string[] { "Shopfloor Germany DB", "Database" })
        .AddCheck("Exenta DB",
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:Exenta")),
            HealthStatus.Unhealthy,
            new string[] { "Exenta DB", "Database" })
-       .AddCheck("Shopfloor File Access",
+       .AddCheck("Hvl Shopfloor File Access",
            new ShopfloorAccessCheck(builder.Configuration.GetValue<string>("Shopfloor:mww")),
            HealthStatus.Degraded,
            new string[] { "Shopfloor Access", "File System" });
