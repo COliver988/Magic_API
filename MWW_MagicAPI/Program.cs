@@ -44,6 +44,7 @@ try
     builder.Services.AddScoped<IProductOverrideRepository, ProductOverrideRepository>();
     builder.Services.AddScoped<IMWW_ApplicationRepository, MWW_ApplicationRepository>();
     builder.Services.AddScoped<IUndefinedProductsRepository, UndefinedProductsRepository>();
+    builder.Services.AddScoped<IWebItemRepository, WebItemRepository>();
 
     // db context
     builder.Services.AddDbContext<MagicDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Magic")));
