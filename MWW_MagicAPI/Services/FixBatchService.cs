@@ -94,10 +94,10 @@ public class FixBatchService : IFixBatchService
             csv.WriteRecords(workorderData);
         }
 
-        // mive to final location and cleanup
+        // move to final location and cleanup
         if (File.Exists(tempFilePath))
         {
-            string finalFilePath = Path.Combine($"{getPath(batchId)}", $"MWW-{_timeStamp}-Workorder.Exenta");
+            string finalFilePath = $"{getPath(batchId)}\\MWW-{_timeStamp}-Workorder.Exenta";
             Directory.CreateDirectory(Path.GetDirectoryName(finalFilePath)!);
             if (File.Exists(finalFilePath))
                 File.Delete(finalFilePath);
@@ -119,7 +119,7 @@ public class FixBatchService : IFixBatchService
         }
         if (File.Exists(tempFilePath))
         {
-            string finalFilePath =  Path.Combine($"{getPath(batchId)}", $"{batchId}-WorkorderUnits.MWW");
+            string finalFilePath = $"{getPath(batchId)}\\{batchId}-WorkorderUnits.MWW";
             Directory.CreateDirectory(Path.GetDirectoryName(finalFilePath)!);
             if (File.Exists(finalFilePath))
                 File.Delete(finalFilePath);
@@ -233,9 +233,11 @@ public class FixBatchService : IFixBatchService
     private string getPath(string batchID)
     {
         var shopfloor = _configuration.GetSection("Shopfloor");
-        string path = shopfloor?[batchID.Substring(0, 2).ToLower()];
-        if (path.IsNullOrEmpty())
+        string? path = shopfloor?[batchID.Substring(0, 2).ToLower()];
+        if (string.IsNullOrEmpty(path))
             path = shopfloor?["mww"];
-        return path;
+        if (string.IsNullOrEmpty(path))
+            throw new InvalidOperationException("No valid Shopfloor path found in configuration");
+        return path.Replace(@"\\", @"\");  
     }
 }

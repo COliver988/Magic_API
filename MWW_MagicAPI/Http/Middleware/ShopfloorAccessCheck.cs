@@ -7,14 +7,15 @@ public class ShopfloorAccessCheck : IHealthCheck
     private readonly string _path;
     public ShopfloorAccessCheck(string path)
     {
-        _path = path;
+        _path = path.Replace(@"\\", @"\");
     }
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
         try
         {
-            string testFile = System.IO.Path.Combine(_path, "healthcheck.txt");
+            // For UNC paths, we need to preserve the format, so we'll just append the filename
+            string testFile = _path.TrimEnd('\\') + "\\healthcheck.txt";
             File.WriteAllText(testFile, DateTime.Now.ToString());
             if (File.Exists(testFile))
             {
