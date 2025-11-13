@@ -6,119 +6,119 @@ public class OrderHeader
 {
     [Key]
     public int ORDERNO { get; set; }
-    public string ORDERTYPE { get; set; }
-    public string DIVISION { get; set; }
-    public string SEASON { get; set; }
-    public string CUSTOMER { get; set; }
-    public string STORE { get; set; }
-    public string DEPARTMENT { get; set; }
-    public string PONUM { get; set; }
-    public string TERMS { get; set; }
-    public string DELTERM { get; set; }
-    public string FOB { get; set; }
-    public string SHIPVIA { get; set; }
-    public string UOMDISPLAY { get; set; }
-    public string WAREHOUSE { get; set; }
+    public string? ORDERTYPE { get; set; }
+    public string? DIVISION { get; set; }
+    public string? SEASON { get; set; }
+    public string? CUSTOMER { get; set; }
+    public string? STORE { get; set; }
+    public string? DEPARTMENT { get; set; }
+    public string? PONUM { get; set; }
+    public string? TERMS { get; set; }
+    public string? DELTERM { get; set; }
+    public string? FOB { get; set; }
+    public string? SHIPVIA { get; set; }
+    public string? UOMDISPLAY { get; set; }
+    public string? WAREHOUSE { get; set; }
     public int Sc_iKey { get; set; }
     public DateTime Sc_TimeCreated { get; set; }
     public DateTime Sc_TimeLastMod { get; set; }
-    public string Sc_UserIdLastMod { get; set; }
+    public string? Sc_UserIdLastMod { get; set; }
     public DateTime EARLIESTDATE { get; set; }
     public DateTime REQUESTDATE { get; set; }
     public DateTime CANCELDATE { get; set; }
-    public string SALESMAN1 { get; set; }
-    public string SALESMAN2 { get; set; }
-    public string COMMISSION { get; set; }
+    public string? SALESMAN1 { get; set; }
+    public string? SALESMAN2 { get; set; }
+    public string? COMMISSION { get; set; }
     public decimal COMMSPLIT { get; set; }
-    public string PRIORITYCODE { get; set; }
+    public string? PRIORITYCODE { get; set; }
     public DateTime PRIORITYDATE { get; set; }
-    public string PRICECODE { get; set; }
-    public string ORDERCAT { get; set; }
-    public string ORDEREDBY { get; set; }
-    public string SHIPTOMETHOD { get; set; }
-    public string DISTRIBUTOR { get; set; }
-    public string CONSOLIDATOR { get; set; }
+    public string? PRICECODE { get; set; }
+    public string? ORDERCAT { get; set; }
+    public string? ORDEREDBY { get; set; }
+    public string? SHIPTOMETHOD { get; set; }
+    public string? DISTRIBUTOR { get; set; }
+    public string? CONSOLIDATOR { get; set; }
     public int HOLD { get; set; }
     public DateTime INHOUSESTARTDATE { get; set; }
     public DateTime INHOUSECANCELDATE { get; set; }
-    public string ORDERORIGIN { get; set; }
-    public string ORDERPICKTYPE { get; set; }
+    public string? ORDERORIGIN { get; set; }
+    public string? ORDERPICKTYPE { get; set; }
     public DateTime ORDERDATE { get; set; }
-    public string SUPPLIERNO { get; set; }
-    public string DISCOUNT { get; set; }
-    public string FACTOR { get; set; }
-    public string FACTORAPPROVALNO { get; set; }
+    public string? SUPPLIERNO { get; set; }
+    public string? DISCOUNT { get; set; }
+    public string? FACTOR { get; set; }
+    public string? FACTORAPPROVALNO { get; set; }
     public decimal ISANO { get; set; }
     public decimal DEPOSITAMT { get; set; }
     public int ORDREVNO { get; set; }
-    public string RUSHORDER { get; set; }
-    public string PRICECLASS { get; set; }
-    public string TAXCODE { get; set; }
-    public string PROGRAMPRICING { get; set; }
-    public string CURRENCY { get; set; }
-    public string PACKPREFERENCE { get; set; }
-    public string COMPANYCODE { get; set; }
+    public string? RUSHORDER { get; set; }
+    public string? PRICECLASS { get; set; }
+    public string? TAXCODE { get; set; }
+    public string? PROGRAMPRICING { get; set; }
+    public string? CURRENCY { get; set; }
+    public string? PACKPREFERENCE { get; set; }
+    public string? COMPANYCODE { get; set; }
     public int ORDERNOCOMPANY { get; set; }
-    public string ORDERREFERENCE { get; set; }
+    public string? ORDERREFERENCE { get; set; }
     public int BULKRULEPKEY { get; set; }
-    public string SIZEEXPLCODE { get; set; }
-    public string BILLHIGHCODE { get; set; }
-    public string SHIPFROMFLAG { get; set; }
-    public string CUSTOMERREP { get; set; }
-    public string CLAIMSREP { get; set; }
-    public string CREDITREP { get; set; }
-    public string COMM2 { get; set; }
-    public string EDIORDERTYPE { get; set; }
+    public string? SIZEEXPLCODE { get; set; }
+    public string? BILLHIGHCODE { get; set; }
+    public string? SHIPFROMFLAG { get; set; }
+    public string? CUSTOMERREP { get; set; }
+    public string? CLAIMSREP { get; set; }
+    public string? CREDITREP { get; set; }
+    public string? COMM2 { get; set; }
+    public string? EDIORDERTYPE { get; set; }
     public DateTime MABDATE { get; set; }
-    public string DISCOUNTSHOWCODE { get; set; }
-    public string BACKORDERALLOW { get; set; }
-    public string CONTRACTNO { get; set; }
-    public string SKIP856 { get; set; }
+    public string? DISCOUNTSHOWCODE { get; set; }
+    public string? BACKORDERALLOW { get; set; }
+    public string? CONTRACTNO { get; set; }
+    public string? SKIP856 { get; set; }
     public decimal FREIGHTAMT { get; set; }
     public decimal TAXAMT { get; set; }
     public decimal DISCOUNTAMT { get; set; }
-    public string WEBUDF01 { get; set; }
-    public string WEBUDF02 { get; set; }
+    public string? WEBUDF01 { get; set; }
+    public string? WEBUDF02 { get; set; }
     public int REGISTERNO { get; set; }
-    public string INCOTERM { get; set; }
-    public string SALESMAN3 { get; set; }
-    public string SALESMAN4 { get; set; }
-    public string COMM3 { get; set; }
-    public string COMM4 { get; set; }
-    public string REGION { get; set; }
+    public string? INCOTERM { get; set; }
+    public string? SALESMAN3 { get; set; }
+    public string? SALESMAN4 { get; set; }
+    public string? COMM3 { get; set; }
+    public string? COMM4 { get; set; }
+    public string? REGION { get; set; }
     public decimal ESTFREIGHTAMT { get; set; }
-    public string PROCESSEDEORDERFLAG { get; set; }
-    public string PROCESSED { get; set; }
-    public string DIRECTINVOICE { get; set; }
+    public string? PROCESSEDEORDERFLAG { get; set; }
+    public string? PROCESSED { get; set; }
+    public string? DIRECTINVOICE { get; set; }
     public decimal MISCAMT { get; set; }
-    public string SPCHARGECODE { get; set; }
+    public string? SPCHARGECODE { get; set; }
     public decimal ESTTAXAMT { get; set; }
     public DateTime SPSSHIPDATE { get; set; }
-    public string ORDERACKEMAIL { get; set; }
-    public string SHIPNOTIFYEMAIL { get; set; }
+    public string? ORDERACKEMAIL { get; set; }
+    public string? SHIPNOTIFYEMAIL { get; set; }
     public int SWCNO { get; set; }
-    public string AGENCYCONTROLCUSTOMER { get; set; }
-    public string SC_SIMSON { get; set; }
+    public string? AGENCYCONTROLCUSTOMER { get; set; }
+    public string? SC_SIMSON { get; set; }
     public DateTime OHUDFDT1 { get; set; }
     public decimal FCCOMMRATE { get; set; }
-    public string FCINVOICEMETH { get; set; }
-    public string FCSALECOMMMETH { get; set; }
-    public string VENDOR { get; set; }
-    public string BILLING3PLPROC { get; set; }
-    public string PRINTSELLSHEET { get; set; }
+    public string? FCINVOICEMETH { get; set; }
+    public string? FCSALECOMMMETH { get; set; }
+    public string? VENDOR { get; set; }
+    public string? BILLING3PLPROC { get; set; }
+    public string? PRINTSELLSHEET { get; set; }
     public DateTime ROUTEBYDATE { get; set; }
-    public string INTERNALCLAIMSREP { get; set; }
-    public string EXPORTFLAG { get; set; }
-    public string EMAILORDERFLAG { get; set; }
-    public string FREIGHTCAP { get; set; }
+    public string? INTERNALCLAIMSREP { get; set; }
+    public string? EXPORTFLAG { get; set; }
+    public string? EMAILORDERFLAG { get; set; }
+    public string? FREIGHTCAP { get; set; }
     public DateTime ORIGSTARTDATE { get; set; }
     public DateTime ORIGCANCELDATE { get; set; }
-    public string QUALITYCODE { get; set; }
-    public string ADDRESSVALID { get; set; }
-    public string ORDUDF01 { get; set; }
-    public string ORDUDF02 { get; set; }
-    public string ORDUDF03 { get; set; }
-    public string ORDUDF04 { get; set; }
-    public string ORDUDF05 { get; set; }
-    public string INVOICEOVERRIDEEMAIL { get; set; }
+    public string? QUALITYCODE { get; set; }
+    public string? ADDRESSVALID { get; set; }
+    public string? ORDUDF01 { get; set; }
+    public string? ORDUDF02 { get; set; }
+    public string? ORDUDF03 { get; set; }
+    public string? ORDUDF04 { get; set; }
+    public string? ORDUDF05 { get; set; }
+    public string? INVOICEOVERRIDEEMAIL { get; set; }
 }

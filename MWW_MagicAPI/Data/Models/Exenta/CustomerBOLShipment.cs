@@ -5,7 +5,7 @@ namespace MWW_Api.Models.Exenta;
 public class CustomerBOLShipment
 {
     [Key]
-    public string BOLNO { get; set; }
+    public string? BOLNO { get; set; }
     public string? CUSTOMER { get; set; }
     public string? MASTERBOL { get; set; }
     public string? VICSBOLNO { get; set; }

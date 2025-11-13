@@ -1,11 +1,9 @@
 using CsvHelper;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using MWW_Api.Config;
 using MWW_Api.Models.Shopfloor;
 using MWW_Api.Repositories.Exenta;
 using MWW_MagicAPI.Data.Models.DTO;
-using System;
 using System.Text;
 
 namespace MWW_MagicAPI.Services;
@@ -14,20 +12,17 @@ public class FixBatchService : IFixBatchService
 {
     private readonly IShopfloorDbContextFactory _contextFactory;
     private IConfiguration _configuration;
-    private readonly ExentaDbContext _exentaContext;
     private readonly MagicDbContext _magicDbContext;
     private IGetBatchUnitValues _getBatchUnitValues;
     private ShopfloorDbContext _context;
     private string _timeStamp;
 
     public FixBatchService(IShopfloorDbContextFactory contextFactory,
-        ExentaDbContext exentaContext,
         MagicDbContext magicDbContext,
         IGetBatchUnitValues getBatchUnitValues,
         IConfiguration configuration)
     {
         _contextFactory = contextFactory;
-        _exentaContext = exentaContext;
         _magicDbContext = magicDbContext;
         _getBatchUnitValues = getBatchUnitValues;
         _configuration = configuration;

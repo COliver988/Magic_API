@@ -57,7 +57,7 @@ public class GetBatchUnitValues : IGetBatchUnitValues
         return result;
     }
 
-    private async Task<WorkOrderDataDTO> getExentaUnitDataAsync(ExentaDbContext exentaContext, int prodNoCompany, int sequence, string consolidate)
+    private async Task<WorkOrderDataDTO?> getExentaUnitDataAsync(ExentaDbContext exentaContext, int prodNoCompany, int sequence, string consolidate)
     {
         // Step 1: Get ProdOrderHeader
         var poh = await exentaContext.ProdOrderHeaders

@@ -4,5 +4,5 @@ namespace MWW_Api.Repositories.Magic;
 
 public interface IWebAPI_CustomersRepositoruy
 {
-    Task<WebAPI_Customer> GetByEmail(string email);
+    Task<WebAPI_Customer?> GetByEmail(string email);
 }
