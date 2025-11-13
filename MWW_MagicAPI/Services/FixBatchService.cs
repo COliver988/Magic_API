@@ -86,7 +86,7 @@ public class FixBatchService : IFixBatchService
     /// <param name="workorderFileData"></param>
     private void write_to_workorder_file(List<WorkOrderDataDTO> workorderData, string batchId)
     {
-        if (workorderData.IsNullOrEmpty()) return;
+        if (workorderData == null || workorderData.Count() == 0) return;
         string tempFilePath = Path.Combine(Path.GetTempFileName());
         using (StreamWriter writer = new StreamWriter(tempFilePath, false, Encoding.UTF8))
         using (var csv = new CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture))
