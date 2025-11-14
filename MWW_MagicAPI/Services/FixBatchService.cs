@@ -148,31 +148,6 @@ public class FixBatchService : IFixBatchService
                           Size = dih.Size,
                       }).ToListAsync();
     }
-    /*
-    private async Task<List<WorkOrderUnitData>> GetFormattedPrintDetails(string batchId)
-    {
-        return await (from dpd in _magicDbContext.DyePrintDetails
-                      join ack in _magicDbContext.ExentaPOLinesWithAckNos
-                          on new { dpd.PO, LineNo = (int)dpd.Ln_No } equals new { ack.PO, LineNo = ack.LN_NO }
-                      join doh in _magicDbContext.DyePrintHeaders
-                          on dpd.PO equals doh.PO
-                      join dih in _magicDbContext.DyeItemAttributes
-                          on doh.ItemCode equals dih.MWWItemCode
-                      where dpd.BatchID == batchId
-                            && !new[] { "queue", "ready", "pods" }.Contains(dpd.Status)
-                      orderby dpd.printedOrder
-                      select new WorkOrderUnitData
-                      {
-                          Workorder = ack.ProdNoCompany + "-" + ack.OpenSeq.ToString(),
-                          Batch = dpd.BatchID,
-                          Seq = (int)dpd.printedOrder,
-                          Unit = $"{dpd.BatchID}_{dpd.printedOrder}",
-                          Thumbnail = $"{dpd.PO}_{dpd.printedOrder}.jpg",
-                          Quantity = 1,
-                          Flag = "I",
-                      }).ToListAsync();
-    }
-    */
 
     private async Task<List<MagicUnit>> getMissingBatches(string batchId)
     {
@@ -233,6 +208,6 @@ public class FixBatchService : IFixBatchService
             path = shopfloor?["mww"];
         if (string.IsNullOrEmpty(path))
             throw new InvalidOperationException("No valid Shopfloor path found in configuration");
-        return path.Replace(@"\\", @"\");  
+        return path;
     }
 }

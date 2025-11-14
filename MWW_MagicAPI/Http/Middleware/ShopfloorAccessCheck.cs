@@ -7,7 +7,7 @@ public class ShopfloorAccessCheck : IHealthCheck
     private readonly string _path;
     public ShopfloorAccessCheck(string path)
     {
-        _path = path.Replace(@"\\", @"\");
+        _path = path;
     }
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
