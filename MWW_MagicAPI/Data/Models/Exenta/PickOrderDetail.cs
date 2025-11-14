@@ -8,18 +8,18 @@ public class PickOrderDetail
     public int LINESEQ { get; set; }
     public int PKEY { get; set; }
     public int ITEMNO { get; set; }
-    public string DIVISION { get; set; }
-    public string STYLE { get; set; }
-    public string LABEL { get; set; }
-    public string COLOR { get; set; }
-    public string DIMENSION { get; set; }
-    public string PREPACK { get; set; }
-    public string SIZE { get; set; }
-    public string UOM { get; set; }
+    public string? DIVISION { get; set; }
+    public string? STYLE { get; set; }
+    public string? LABEL { get; set; }
+    public string? COLOR { get; set; }
+    public string? DIMENSION { get; set; }
+    public string? PREPACK { get; set; }
+    public string? SIZE { get; set; }
+    public string? UOM { get; set; }
     public decimal UOMFACTOR { get; set; }
     public decimal PICKEDQTY { get; set; }
     public decimal PICKEDPAIR { get; set; }
-    public string PRICECODE { get; set; }
+    public string? PRICECODE { get; set; }
     public decimal PRICE { get; set; }
     public decimal PRICEEXT { get; set; }
     public int ORDERDETAILPKEY { get; set; }
@@ -28,75 +28,75 @@ public class PickOrderDetail
     public int Sc_iKey { get; set; }
     public DateTime Sc_TimeCreated { get; set; }
     public DateTime Sc_TimeLastMod { get; set; }
-    public string Sc_UserIdLastMod { get; set; }
-    public string PPKDIVISION { get; set; }
-    public string PPKSTYLE { get; set; }
-    public string PPKCOLOR { get; set; }
-    public string PPKDIM { get; set; }
-    public string PPK { get; set; }
-    public string PPKSIZE { get; set; }
-    public string SCANTEXT { get; set; }
+    public string? Sc_UserIdLastMod { get; set; }
+    public string? PPKDIVISION { get; set; }
+    public string? PPKSTYLE { get; set; }
+    public string? PPKCOLOR { get; set; }
+    public string? PPKDIM { get; set; }
+    public string? PPK { get; set; }
+    public string? PPKSIZE { get; set; }
+    public string? SCANTEXT { get; set; }
     public decimal STDPRICE { get; set; }
-    public string ROYALTYCODE { get; set; }
-    public string COMM1 { get; set; }
-    public string COMM2 { get; set; }
-    public string PPKLABEL { get; set; }
-    public string COMPANYCODE { get; set; }
-    public string ORDERLINEDISC { get; set; }
+    public string? ROYALTYCODE { get; set; }
+    public string? COMM1 { get; set; }
+    public string? COMM2 { get; set; }
+    public string? PPKLABEL { get; set; }
+    public string? COMPANYCODE { get; set; }
+    public string? ORDERLINEDISC { get; set; }
     public int BULKDETAILPKEY { get; set; }
     public int BULKRULEPKEY { get; set; }
-    public string ROYALTYCODE2 { get; set; }
-    public string EDIIMPLOSION { get; set; }
+    public string? ROYALTYCODE2 { get; set; }
+    public string? EDIIMPLOSION { get; set; }
     public int PICKITEMNO { get; set; }
-    public string BILLHIGHCODE { get; set; }
-    public string TIERDISCOUNTFLAG { get; set; }
-    public string ADDITIONALDISC { get; set; }
-    public string PRICESOURCE { get; set; }
-    public string SALESCATEGORY { get; set; }
-    public string WEBUDF03 { get; set; }
-    public string CUSTOMERPPKSKU { get; set; }
+    public string? BILLHIGHCODE { get; set; }
+    public string? TIERDISCOUNTFLAG { get; set; }
+    public string? ADDITIONALDISC { get; set; }
+    public string? PRICESOURCE { get; set; }
+    public string? SALESCATEGORY { get; set; }
+    public string? WEBUDF03 { get; set; }
+    public string? CUSTOMERPPKSKU { get; set; }
     public decimal PAIRPRICE { get; set; }
     public decimal STDPAIRPRICE { get; set; }
     public decimal ORDERLINEDISCAMT { get; set; }
-    public string PRODLOTNO { get; set; }
-    public string STYLEVERSION { get; set; }
-    public string SIZEEXPLCODE { get; set; }
+    public string? PRODLOTNO { get; set; }
+    public string? STYLEVERSION { get; set; }
+    public string? SIZEEXPLCODE { get; set; }
     public decimal MINORDQTY { get; set; }
     public decimal MAXORDQTY { get; set; }
-    public string HALFPIECE { get; set; }
+    public string? HALFPIECE { get; set; }
     public decimal ORIGINALPRICE { get; set; }
     public decimal NETPRICE { get; set; }
-    public string ENSEMBLECODE { get; set; }
+    public string? ENSEMBLECODE { get; set; }
     public decimal ENSEMBLEPRICE { get; set; }
     public decimal ENSEMBLEDISCPERC { get; set; }
     public int VASITEMNO { get; set; }
-    public string STOCKTYPE { get; set; }
-    public string STOCKNO { get; set; }
-    public string SALESMAN1 { get; set; }
-    public string SALESMAN2 { get; set; }
+    public string? STOCKTYPE { get; set; }
+    public string? STOCKNO { get; set; }
+    public string? SALESMAN1 { get; set; }
+    public string? SALESMAN2 { get; set; }
     public decimal ORIGPICKQTY { get; set; }
     public decimal ODMISCAMT { get; set; }
     public decimal VENDORPRICE { get; set; }
     public decimal WORKORDERPAIRS { get; set; }
     public decimal DTLTAXPERC { get; set; }
-    public string WEBUDF04 { get; set; }
-    public string WEBUDF05 { get; set; }
-    public string WEBUDF06 { get; set; }
-    public string WEBUDF07 { get; set; }
-    public string WEBUDF08 { get; set; }
-    public string WEBUDF09 { get; set; }
-    public string WEBUDF10 { get; set; }
-    public string WEBUDF11 { get; set; }
-    public string WEBUDF12 { get; set; }
-    public string WEBUDF13 { get; set; }
-    public string WEBUDF14 { get; set; }
-    public string WEBUDF15 { get; set; }
-    public string WEBUDF16 { get; set; }
-    public string WEBUDF17 { get; set; }
-    public string WEBUDF18 { get; set; }
+    public string? WEBUDF04 { get; set; }
+    public string? WEBUDF05 { get; set; }
+    public string? WEBUDF06 { get; set; }
+    public string? WEBUDF07 { get; set; }
+    public string? WEBUDF08 { get; set; }
+    public string? WEBUDF09 { get; set; }
+    public string? WEBUDF10 { get; set; }
+    public string? WEBUDF11 { get; set; }
+    public string? WEBUDF12 { get; set; }
+    public string? WEBUDF13 { get; set; }
+    public string? WEBUDF14 { get; set; }
+    public string? WEBUDF15 { get; set; }
+    public string? WEBUDF16 { get; set; }
+    public string? WEBUDF17 { get; set; }
+    public string? WEBUDF18 { get; set; }
     public decimal TAXAMTPERUNIT { get; set; }
-    public string QUALITYCODE { get; set; }
+    public string? QUALITYCODE { get; set; }
     public decimal CUSTOMSPRICE { get; set; }
-    public string ALTHSNUMBER { get; set; }
+    public string? ALTHSNUMBER { get; set; }
 
 }

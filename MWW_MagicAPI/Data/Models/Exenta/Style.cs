@@ -2,60 +2,60 @@
 
 public class Style
 {
-    public string DIVISION { get; set; }
-    public string SEASON { get; set; }
-    public string STYLENAME { get; set; }
-    public string STYLEDESC { get; set; }
+    public string? DIVISION { get; set; }
+    public string? SEASON { get; set; }
+    public string? STYLENAME { get; set; }
+    public string? STYLEDESC { get; set; }
     public int Sc_iKey { get; set; }
     public DateTime Sc_TimeCreated { get; set; }
     public DateTime Sc_TimeLastMod { get; set; }
-    public string Sc_UserIdLastMod { get; set; }
-    public string STYLE { get; set; }
-    public string SIZERANGE { get; set; }
-    public string MERCHGROUPA { get; set; }
-    public string MERCHGROUPB { get; set; }
-    public string MERCHGROUPC { get; set; }
-    public string MERCHGROUPD { get; set; }
-    public string MERCHGROUPE { get; set; }
-    public string MERCHGROUPF { get; set; }
-    public string HSNUMBER { get; set; }
-    public string ROYALTYCODE { get; set; }
-    public string STYLESTATUS { get; set; }
-    public string PACKAGE { get; set; }
-    public string QUOTACODE { get; set; }
-    public string CONSTRUCTIONCODE { get; set; }
-    public string GENERATEUPC { get; set; }
+    public string? Sc_UserIdLastMod { get; set; }
+    public string? STYLE { get; set; }
+    public string? SIZERANGE { get; set; }
+    public string? MERCHGROUPA { get; set; }
+    public string? MERCHGROUPB { get; set; }
+    public string? MERCHGROUPC { get; set; }
+    public string? MERCHGROUPD { get; set; }
+    public string? MERCHGROUPE { get; set; }
+    public string? MERCHGROUPF { get; set; }
+    public string? HSNUMBER { get; set; }
+    public string? ROYALTYCODE { get; set; }
+    public string? STYLESTATUS { get; set; }
+    public string? PACKAGE { get; set; }
+    public string? QUOTACODE { get; set; }
+    public string? CONSTRUCTIONCODE { get; set; }
+    public string? GENERATEUPC { get; set; }
     public DateTime DISCONTINUEDATE { get; set; }
-    public string DISCONTINUENO { get; set; }
-    public string VENDOR { get; set; }
-    public string COSTTEMPLATE { get; set; }
+    public string? DISCONTINUENO { get; set; }
+    public string? VENDOR { get; set; }
+    public string? COSTTEMPLATE { get; set; }
     public string? STYLECOMMENT { get; set; }
-    public string USEINNER { get; set; }
-    public string DESIGN { get; set; }
-    public string STYLECONTENT { get; set; }
-    public string DIMRANGE { get; set; }
+    public string? USEINNER { get; set; }
+    public string? DESIGN { get; set; }
+    public string? STYLECONTENT { get; set; }
+    public string? DIMRANGE { get; set; }
     public decimal STYLELENGTH { get; set; }
     public decimal STYLEWIDTH { get; set; }
     public decimal STYLEHEIGTH { get; set; }
     public decimal STYLECUBES { get; set; }
     public decimal STYLEWEIGHT { get; set; }
-    public string MERCHGROUPG { get; set; }
-    public string MERCHGROUPH { get; set; }
-    public string STYLETYPE { get; set; }
-    public string MODEL { get; set; }
-    public string RMTYPE { get; set; }
-    public string RMGROUP { get; set; }
+    public string? MERCHGROUPG { get; set; }
+    public string? MERCHGROUPH { get; set; }
+    public string? STYLETYPE { get; set; }
+    public string? MODEL { get; set; }
+    public string? RMTYPE { get; set; }
+    public string? RMGROUP { get; set; }
     public decimal DEFAULTRMUSG { get; set; }
-    public string RMSIZEFLAG { get; set; }
+    public string? RMSIZEFLAG { get; set; }
     public decimal RMWASTEPERC { get; set; }
-    public string CASEROLLFLAG { get; set; }
-    public string BOMFLAG { get; set; }
-    public string INVENTORYOKFLAG { get; set; }
-    public string COUNTRYOFORIGIN { get; set; }
-    public string PURCHASEUOM { get; set; }
-    public string UOMDEFAULT { get; set; }
-    public string COMPANYCODE { get; set; }
-    public string ROYALTYCODE2 { get; set; }
+    public string? CASEROLLFLAG { get; set; }
+    public string? BOMFLAG { get; set; }
+    public string? INVENTORYOKFLAG { get; set; }
+    public string? COUNTRYOFORIGIN { get; set; }
+    public string? PURCHASEUOM { get; set; }
+    public string? UOMDEFAULT { get; set; }
+    public string? COMPANYCODE { get; set; }
+    public string? ROYALTYCODE2 { get; set; }
     public decimal CSLENGTH { get; set; }
     public decimal CSWIDTH { get; set; }
     public decimal CSHEIGHT { get; set; }
@@ -65,65 +65,65 @@ public class Style
     public decimal INFACTOR { get; set; }
     public decimal LIMITQTY { get; set; }
     public DateTime STYLERELEASEDATE { get; set; }
-    public string STYLERELEASETIME { get; set; }
+    public string? STYLERELEASETIME { get; set; }
     public int EXPORTBATCHNO { get; set; }
-    public string SHAREUPC { get; set; }
-    public string DISCOUNT { get; set; }
-    public string PACKINGINSTRCODE { get; set; }
-    public string PKPACKTYPE { get; set; }
+    public string? SHAREUPC { get; set; }
+    public string? DISCOUNT { get; set; }
+    public string? PACKINGINSTRCODE { get; set; }
+    public string? PKPACKTYPE { get; set; }
     public decimal PKFACTOR { get; set; }
-    public string INPACKTYPE { get; set; }
-    public string PACKTYPE { get; set; }
-    public string PACKCATEGORY { get; set; }
+    public string? INPACKTYPE { get; set; }
+    public string? PACKTYPE { get; set; }
+    public string? PACKCATEGORY { get; set; }
     public decimal BASEFACTOR { get; set; }
     public decimal INLENGTH { get; set; }
     public decimal INWIDTH { get; set; }
     public decimal INHEIGHT { get; set; }
     public decimal INCUBES { get; set; }
     public decimal INWEIGHT { get; set; }
-    public string CASEONLYFLAG { get; set; }
-    public string STYLEUDF01 { get; set; }
+    public string? CASEONLYFLAG { get; set; }
+    public string? STYLEUDF01 { get; set; }
     public DateTime STYLEEXPORTDATE { get; set; }
-    public string COMMODITYCODE { get; set; }
+    public string? COMMODITYCODE { get; set; }
     public int IMAGEPKEY { get; set; }
     public decimal RMCOST { get; set; }
-    public string BASESTYLE { get; set; }
-    public string WAREHOUSE { get; set; }
-    public string STYLEUDF02 { get; set; }
-    public string STYLEUDF03 { get; set; }
-    public string CUSTOMER { get; set; }
-    public string STYLESETFLAG { get; set; }
-    public string STYLEACCESSORYFLAG { get; set; }
-    public string STYLEFULLPOCKETFLAG { get; set; }
-    public string STYLESPECIALTICKETFLAG { get; set; }
-    public string STYLEREPLENISHMENTFLAG { get; set; }
-    public string STYLEEXTRALABORFLAG { get; set; }
-    public string STYLEUDF1FLAG { get; set; }
-    public string STYLEUDF2FLAG { get; set; }
-    public string SUBASSEMBLYGROUP { get; set; }
+    public string? BASESTYLE { get; set; }
+    public string? WAREHOUSE { get; set; }
+    public string? STYLEUDF02 { get; set; }
+    public string? STYLEUDF03 { get; set; }
+    public string? CUSTOMER { get; set; }
+    public string? STYLESETFLAG { get; set; }
+    public string? STYLEACCESSORYFLAG { get; set; }
+    public string? STYLEFULLPOCKETFLAG { get; set; }
+    public string? STYLESPECIALTICKETFLAG { get; set; }
+    public string? STYLEREPLENISHMENTFLAG { get; set; }
+    public string? STYLEEXTRALABORFLAG { get; set; }
+    public string? STYLEUDF1FLAG { get; set; }
+    public string? STYLEUDF2FLAG { get; set; }
+    public string? SUBASSEMBLYGROUP { get; set; }
     public decimal MSRP { get; set; }
     public DateTime STYLECREATIONDATE { get; set; }
     public int DAYSTOREPLENISHMENT { get; set; }
-    public string GARMENTQUALITY { get; set; }
+    public string? GARMENTQUALITY { get; set; }
     public DateTime REPLENISHMENTDATE { get; set; }
-    public string CAFTAFLAG { get; set; }
+    public string? CAFTAFLAG { get; set; }
     public decimal CSLENGTHMETRIC { get; set; }
     public decimal CSWIDTHMETRIC { get; set; }
     public decimal CSHEIGHTMETRIC { get; set; }
     public decimal CSCUBESMETRIC { get; set; }
     public decimal CSWEIGHTMETRIC { get; set; }
-    public string OLDSTYLENO { get; set; }
+    public string? OLDSTYLENO { get; set; }
     public decimal RETAILPRICE { get; set; }
-    public string FINISHEDWIDTH { get; set; }
-    public string PRODTYPE { get; set; }
-    public string SALESCATEGORY { get; set; }
+    public string? FINISHEDWIDTH { get; set; }
+    public string? PRODTYPE { get; set; }
+    public string? SALESCATEGORY { get; set; }
     public DateTime STYLEUDFDATE1 { get; set; }
     public DateTime STYLEUDFDATE2 { get; set; }
     public int LEADTIME { get; set; }
     public decimal MINPOQTY { get; set; }
-    public string CALENDAR { get; set; }
-    public string LABELTYPE { get; set; }
-    public string GREIGESTYLE { get; set; }
+    public string? CALENDAR { get; set; }
+    public string? LABELTYPE { get; set; }
+    public string? GREIGESTYLE { get; set; }
     public DateTime STYLEUDFDATE3 { get; set; }
     public DateTime STYLEUDFDATE4 { get; set; }
     public DateTime STYLEUDFDATE5 { get; set; }
@@ -131,35 +131,35 @@ public class Style
     public DateTime STYLEUDFDATE7 { get; set; }
     public DateTime STYLEUDFDATE8 { get; set; }
     public DateTime STYLEUDFDATE9 { get; set; }
-    public string PLMDESIGN { get; set; }
+    public string? PLMDESIGN { get; set; }
     public int SAMPLENO { get; set; }
     public decimal STYLEUDFNUMB1 { get; set; }
-    public string QUALITYWATCH { get; set; }
+    public string? QUALITYWATCH { get; set; }
     public DateTime CONTINUITYDATE { get; set; }
     public decimal AVERAGEROLLSIZE { get; set; }
     public decimal SHORTPIECESIZE { get; set; }
     public decimal CONTRACTUALWORKINGLOSS { get; set; }
     public decimal GUARANTEEDWORKINGLOSS { get; set; }
-    public string CLEANINGCODE { get; set; }
-    public string MANUFACTURETYPE { get; set; }
-    public string STYLEGENDER { get; set; }
-    public string TAXCATEGORY { get; set; }
-    public string EXPERIMENTALFLAG { get; set; }
+    public string? CLEANINGCODE { get; set; }
+    public string? MANUFACTURETYPE { get; set; }
+    public string? STYLEGENDER { get; set; }
+    public string? TAXCATEGORY { get; set; }
+    public string? EXPERIMENTALFLAG { get; set; }
     public decimal STYLEWEIGHTYARDS { get; set; }
     public decimal STYLEWEIGHTGRAMS { get; set; }
     public int STYLECOUNTENDS { get; set; }
     public int STYLECOUNTPICS { get; set; }
-    public string WOVENKNITFLAG { get; set; }
-    public string WARPID { get; set; }
-    public string YARNDYEFLAG { get; set; }
-    public string FIBERCONTENTDESC { get; set; }
+    public string? WOVENKNITFLAG { get; set; }
+    public string? WARPID { get; set; }
+    public string? YARNDYEFLAG { get; set; }
+    public string? FIBERCONTENTDESC { get; set; }
     public string? COMMENT { get; set; }
-    public string FILL { get; set; }
+    public string? FILL { get; set; }
     public decimal MASTERCARTONQTY { get; set; }
-    public string PROGCODE { get; set; }
-    public string STYLEUDF04 { get; set; }
-    public string STYLEUDF05 { get; set; }
-    public string STYLEUDF06 { get; set; }
+    public string? PROGCODE { get; set; }
+    public string? STYLEUDF04 { get; set; }
+    public string? STYLEUDF05 { get; set; }
+    public string? STYLEUDF06 { get; set; }
     public decimal WEIGHTLB { get; set; }
     public decimal WEIGHTKG { get; set; }
     public decimal NETNETWEIGHT { get; set; }
@@ -167,52 +167,52 @@ public class Style
     public decimal INHEIGHTMETRIC { get; set; }
     public decimal INWIDTHMETRIC { get; set; }
     public decimal NETHSDUTYWEIGHT { get; set; }
-    public string COMPLIANCELABEL { get; set; }
+    public string? COMPLIANCELABEL { get; set; }
     public decimal NETNETWEIGHTKG { get; set; }
-    public string PROCESSEDTOFILE { get; set; }
-    public string STYLEUDF07 { get; set; }
-    public string STYLEUDF08 { get; set; }
-    public string STYLEUDF09 { get; set; }
-    public string STYLEUDF3FLAG { get; set; }
-    public string STYLEUDF4FLAG { get; set; }
+    public string? PROCESSEDTOFILE { get; set; }
+    public string? STYLEUDF07 { get; set; }
+    public string? STYLEUDF08 { get; set; }
+    public string? STYLEUDF09 { get; set; }
+    public string? STYLEUDF3FLAG { get; set; }
+    public string? STYLEUDF4FLAG { get; set; }
     public DateTime STYLEUDFDATE10 { get; set; }
     public DateTime STYLEUDFDATE11 { get; set; }
     public DateTime STYLEUDFDATE12 { get; set; }
-    public string COORDINATECODE { get; set; }
+    public string? COORDINATECODE { get; set; }
     public DateTime STYLEUDFDATE13 { get; set; }
     public DateTime STYLEUDFDATE14 { get; set; }
     public DateTime STYLEUDFDATE15 { get; set; }
     public int MRPLEVEL { get; set; }
-    public string LOTTRACKREQ { get; set; }
-    public string APPROVEDBY { get; set; }
+    public string? LOTTRACKREQ { get; set; }
+    public string? APPROVEDBY { get; set; }
     public DateTime APPROVEDDATE { get; set; }
-    public string APPROVALFLAG { get; set; }
+    public string? APPROVALFLAG { get; set; }
     public string? SC_SIMSON { get; set; }
-    public string CPSIAAPPRFLAG { get; set; }
+    public string? CPSIAAPPRFLAG { get; set; }
     public DateTime CPSIAEXPRDATE { get; set; }
-    public string CUSTOMSVENDOR { get; set; }
-    public string CUSTOMSFGITEM { get; set; }
-    public string LAUNCHSEASON { get; set; }
-    public string PRODUCTTYPE { get; set; }
-    public string MERCHGROUPI { get; set; }
-    public string MERCHGROUPJ { get; set; }
-    public string MERCHGROUPK { get; set; }
-    public string MERCHGROUPL { get; set; }
-    public string MERCHGROUPM { get; set; }
-    public string MERCHGROUPN { get; set; }
-    public string MERCHGROUPO { get; set; }
-    public string MERCHGROUPP { get; set; }
+    public string? CUSTOMSVENDOR { get; set; }
+    public string? CUSTOMSFGITEM { get; set; }
+    public string? LAUNCHSEASON { get; set; }
+    public string? PRODUCTTYPE { get; set; }
+    public string? MERCHGROUPI { get; set; }
+    public string? MERCHGROUPJ { get; set; }
+    public string? MERCHGROUPK { get; set; }
+    public string? MERCHGROUPL { get; set; }
+    public string? MERCHGROUPM { get; set; }
+    public string? MERCHGROUPN { get; set; }
+    public string? MERCHGROUPO { get; set; }
+    public string? MERCHGROUPP { get; set; }
     public int PRODUCTIONDAYS { get; set; }
     public DateTime ESTDELIVERYDATE { get; set; }
-    public string SIZEEXPLCODE { get; set; }
-    public string EDI846INVFLAG { get; set; }
-    public string TARIFFHSNUMBER { get; set; }
-    public string STYLEUDF5FLAG { get; set; }
-    public string STYLEUDF6FLAG { get; set; }
-    public string GENERATEEAN { get; set; }
-    public string SHAREEAN { get; set; }
-    public string AVALARAPRODUCTTAXCODE { get; set; }
-    public string MAKER { get; set; }
+    public string? SIZEEXPLCODE { get; set; }
+    public string? EDI846INVFLAG { get; set; }
+    public string? TARIFFHSNUMBER { get; set; }
+    public string? STYLEUDF5FLAG { get; set; }
+    public string? STYLEUDF6FLAG { get; set; }
+    public string? GENERATEEAN { get; set; }
+    public string? SHAREEAN { get; set; }
+    public string? AVALARAPRODUCTTAXCODE { get; set; }
+    public string? MAKER { get; set; }
     public decimal STYLEUDFNUMB2 { get; set; }
     public decimal STYLEUDFNUMB3 { get; set; }
     public decimal STYLEUDFNUMB4 { get; set; }

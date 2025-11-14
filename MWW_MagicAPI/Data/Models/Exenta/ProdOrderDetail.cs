@@ -6,15 +6,15 @@ public class ProdOrderDetail
     public int OPENSEQ { get; set; }
     public int PRODLINENO { get; set; }
     public int PRODPREVLINE { get; set; }
-    public string PRODSTAGE { get; set; }
+    public string? PRODSTAGE { get; set; }
     public int PRODSTAGENO { get; set; }
-    public string LASTSTAGE { get; set; }
-    public string STYLE { get; set; }
+    public string? LASTSTAGE { get; set; }
+    public string? STYLE { get; set; }
     public int ITEMNO { get; set; }
-    public string SIZE { get; set; }
-    public string COLOR { get; set; }
-    public string LABEL { get; set; }
-    public string UOM { get; set; }
+    public string? SIZE { get; set; }
+    public string? COLOR { get; set; }
+    public string? LABEL { get; set; }
+    public string? UOM { get; set; }
     public decimal PRODLINEQTY { get; set; }
     public decimal PRODLINEPAIRS { get; set; }
     public decimal PRODLINEWIP { get; set; }
@@ -27,72 +27,72 @@ public class ProdOrderDetail
     public decimal PRODCOST { get; set; }
     public DateTime SHIPDATE { get; set; }
     public DateTime DUEDATE { get; set; }
-    public string SHIPVIA { get; set; }
+    public string? SHIPVIA { get; set; }
     public int FKEY { get; set; }
-    public string DIVISION { get; set; }
-    public string PRODTYPE { get; set; }
-    public string PRODCANCELREASON { get; set; }
-    public string PRODCANCELTYPE { get; set; }
+    public string? DIVISION { get; set; }
+    public string? PRODTYPE { get; set; }
+    public string? PRODCANCELREASON { get; set; }
+    public string? PRODCANCELTYPE { get; set; }
     public int RECEIVENO { get; set; }
     public int Sc_iKey { get; set; }
     public DateTime Sc_TimeCreated { get; set; }
     public DateTime Sc_TimeLastMod { get; set; }
-    public string Sc_UserIdLastMod { get; set; }
-    public string CONTAINERID { get; set; }
-    public string VENDOR { get; set; }
+    public string? Sc_UserIdLastMod { get; set; }
+    public string? CONTAINERID { get; set; }
+    public string? VENDOR { get; set; }
     public DateTime ADJDUEDATE { get; set; }
     public int ORDERSEQ { get; set; }
     public string? PODETAILCOMMENT { get; set; }
-    public string DIMENSION { get; set; }
-    public string PREPACK { get; set; }
-    public string WAREHOUSE { get; set; }
+    public string? DIMENSION { get; set; }
+    public string? PREPACK { get; set; }
+    public string? WAREHOUSE { get; set; }
     public int LINESEQ { get; set; }
     public int BATCHNUM { get; set; }
     public int PREVBATCHNUM { get; set; }
-    public string WIPSTAGE { get; set; }
+    public string? WIPSTAGE { get; set; }
     public int MPSPKEY { get; set; }
     public int ASSIGNEDMPSPKEY { get; set; }
     public int RECEIVINGDETAILPKEY { get; set; }
     public int IRRITEMNO { get; set; }
     public int BOMCONSUMEPKEY { get; set; }
-    public string IMPORTSHIPMENTTERMS { get; set; }
-    public string COMPANYCODE { get; set; }
-    public string STYLEITEMNAME { get; set; }
-    public string HSNUMBER { get; set; }
-    public string WIPASINV { get; set; }
+    public string? IMPORTSHIPMENTTERMS { get; set; }
+    public string? COMPANYCODE { get; set; }
+    public string? STYLEITEMNAME { get; set; }
+    public string? HSNUMBER { get; set; }
+    public string? WIPASINV { get; set; }
     public DateTime CANCELSHIPDATE { get; set; }
-    public string PORTOFENTRY { get; set; }
-    public string PRINTEDFLAG { get; set; }
-    public string SIZEEXPLCODE { get; set; }
-    public string STYLEVERSION { get; set; }
-    public string CUSTOMER { get; set; }
-    public string PRODDETAILUDF01 { get; set; }
-    public string MPSREFNO { get; set; }
+    public string? PORTOFENTRY { get; set; }
+    public string? PRINTEDFLAG { get; set; }
+    public string? SIZEEXPLCODE { get; set; }
+    public string? STYLEVERSION { get; set; }
+    public string? CUSTOMER { get; set; }
+    public string? PRODDETAILUDF01 { get; set; }
+    public string? MPSREFNO { get; set; }
     public decimal CONTRACTUALWORKINGLOSS { get; set; }
     public decimal GUARANTEEDWORKINGLOSS { get; set; }
-    public string CUTDIV { get; set; }
-    public string CUTSTYLE { get; set; }
-    public string CUTLABEL { get; set; }
-    public string CUTCOLOR { get; set; }
-    public string CUTDIM { get; set; }
-    public string CUTPPK { get; set; }
-    public string PRODDETAILUDF02 { get; set; }
-    public string PRODDETAILUDF03 { get; set; }
-    public string PRODDETAILUDF04 { get; set; }
-    public string RMWAREHOUSE { get; set; }
-    public string PRODDETAILUDF05 { get; set; }
-    public string PRODDETAILUDF06 { get; set; }
-    public string PRODDETAILUDF07 { get; set; }
-    public string PRODDETAILUDF08 { get; set; }
-    public string PRODDETAILUDF09 { get; set; }
-    public string PRODDETAILUDF10 { get; set; }
-    public string PRODDETAILUDF11 { get; set; }
-    public string PRODDETAILUDF12 { get; set; }
-    public string PRODDETAILUDF13 { get; set; }
-    public string PRODDETAILUDF14 { get; set; }
-    public string PRODDETAILUDF15 { get; set; }
-    public string PRODDETAILUDF16 { get; set; }
-    public string PRODDETAILUDF17 { get; set; }
+    public string? CUTDIV { get; set; }
+    public string? CUTSTYLE { get; set; }
+    public string? CUTLABEL { get; set; }
+    public string? CUTCOLOR { get; set; }
+    public string? CUTDIM { get; set; }
+    public string? CUTPPK { get; set; }
+    public string? PRODDETAILUDF02 { get; set; }
+    public string? PRODDETAILUDF03 { get; set; }
+    public string? PRODDETAILUDF04 { get; set; }
+    public string? RMWAREHOUSE { get; set; }
+    public string? PRODDETAILUDF05 { get; set; }
+    public string? PRODDETAILUDF06 { get; set; }
+    public string? PRODDETAILUDF07 { get; set; }
+    public string? PRODDETAILUDF08 { get; set; }
+    public string? PRODDETAILUDF09 { get; set; }
+    public string? PRODDETAILUDF10 { get; set; }
+    public string? PRODDETAILUDF11 { get; set; }
+    public string? PRODDETAILUDF12 { get; set; }
+    public string? PRODDETAILUDF13 { get; set; }
+    public string? PRODDETAILUDF14 { get; set; }
+    public string? PRODDETAILUDF15 { get; set; }
+    public string? PRODDETAILUDF16 { get; set; }
+    public string? PRODDETAILUDF17 { get; set; }
     public DateTime PRODDETAILUDFDT01 { get; set; }
     public DateTime PRODDETAILUDFDT02 { get; set; }
     public DateTime PRODDETAILUDFDT03 { get; set; }
@@ -108,5 +108,5 @@ public class ProdOrderDetail
     public int ORDERNO { get; set; }
     public int ORDERNOCOMPANY { get; set; }
     public DateTime PRODSTARTDATE { get; set; }
-    public string QUALITYCODE { get; set; }
+    public string? QUALITYCODE { get; set; }
 }

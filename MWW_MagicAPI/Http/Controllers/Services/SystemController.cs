@@ -17,11 +17,13 @@ namespace MWW_MagicAPI.Http.Controllers.Services
 
             // Get the version from the assembly's metadata
             Version version = assembly.GetName().Version;
+            string frameworkDescription = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription;
 
             return Ok(new
             {
                 AssemblyVersion = assembly.GetName().Version?.ToString() ?? "Unknown",
                 CompileDate = ConvertDaysSinceEpochToDate(version != null && version.Build > 0 ? version.Build : 0).ToString("yyyy-MM-dd"),
+                RunTime = frameworkDescription
             });
         }
 

@@ -9,143 +9,143 @@ public class InvoiceOrderHeader
     public DateTime INVOICEDATE { get; set; }
     public int PICKNO { get; set; }
     public DateTime PICKDATE { get; set; }
-    public string WAREHOUSE { get; set; }
+    public string? WAREHOUSE { get; set; }
     public int ORDERNO { get; set; }
-    public string PRINTEDFLAG { get; set; }
-    public string GENERATEDCARTONFLAG { get; set; }
+    public string? PRINTEDFLAG { get; set; }
+    public string? GENERATEDCARTONFLAG { get; set; }
     public int ORDERCARTONS { get; set; }
     public decimal ORDERWEIGHT { get; set; }
     public decimal ORDERVOLUME { get; set; }
-    public string SHIPTOMETHOD { get; set; }
-    public string DISTRIBUTOR { get; set; }
-    public string CONSOLIDATOR { get; set; }
-    public string ORDERPICKTYPE { get; set; }
-    public string BOLNO { get; set; }
-    public string SHIPTOCODE { get; set; }
-    public string SHIPTOTYPE { get; set; }
+    public string? SHIPTOMETHOD { get; set; }
+    public string? DISTRIBUTOR { get; set; }
+    public string? CONSOLIDATOR { get; set; }
+    public string? ORDERPICKTYPE { get; set; }
+    public string? BOLNO { get; set; }
+    public string? SHIPTOCODE { get; set; }
+    public string? SHIPTOTYPE { get; set; }
     public DateTime ARPOSTEDDATE { get; set; }
     public int ARTRANSACTIONNO { get; set; }
-    public string PROCESSED810 { get; set; }
+    public string? PROCESSED810 { get; set; }
     public DateTime PROCESSED810DATE { get; set; }
-    public string PROCESSED856 { get; set; }
+    public string? PROCESSED856 { get; set; }
     public DateTime PROCESSED856DATE { get; set; }
     public int Sc_iKey { get; set; }
     public DateTime Sc_TimeCreated { get; set; }
     public DateTime Sc_TimeLastMod { get; set; }
-    public string Sc_UserIdLastMod { get; set; }
-    public string POSTEDARFLAG { get; set; }
+    public string? Sc_UserIdLastMod { get; set; }
+    public string? POSTEDARFLAG { get; set; }
     public decimal DEPOSITAMT { get; set; }
     public decimal FREIGHTAMT { get; set; }
     public decimal INSURANCEAMT { get; set; }
     public decimal MISCAMT { get; set; }
     public decimal TAXAMT { get; set; }
-    public string VICSBOLNO { get; set; }
-    public string DISCOUNT { get; set; }
-    public string ORDERTYPE { get; set; }
-    public string DIVISION { get; set; }
-    public string SEASON { get; set; }
-    public string CUSTOMER { get; set; }
-    public string STORE { get; set; }
-    public string DEPARTMENT { get; set; }
-    public string PONUM { get; set; }
-    public string TERMS { get; set; }
-    public string DELTERM { get; set; }
-    public string FOB { get; set; }
-    public string SHIPVIA { get; set; }
-    public string UOMDISPLAY { get; set; }
+    public string? VICSBOLNO { get; set; }
+    public string? DISCOUNT { get; set; }
+    public string? ORDERTYPE { get; set; }
+    public string? DIVISION { get; set; }
+    public string? SEASON { get; set; }
+    public string? CUSTOMER { get; set; }
+    public string? STORE { get; set; }
+    public string? DEPARTMENT { get; set; }
+    public string? PONUM { get; set; }
+    public string? TERMS { get; set; }
+    public string? DELTERM { get; set; }
+    public string? FOB { get; set; }
+    public string? SHIPVIA { get; set; }
+    public string? UOMDISPLAY { get; set; }
     public DateTime EARLIESTDATE { get; set; }
     public DateTime REQUESTDATE { get; set; }
     public DateTime CANCELDATE { get; set; }
-    public string SALESMAN1 { get; set; }
-    public string SALESMAN2 { get; set; }
-    public string COMMISSION { get; set; }
-    public string PRIORITYCODE { get; set; }
+    public string? SALESMAN1 { get; set; }
+    public string? SALESMAN2 { get; set; }
+    public string? COMMISSION { get; set; }
+    public string? PRIORITYCODE { get; set; }
     public DateTime PRIORITYDATE { get; set; }
-    public string ORDERCAT { get; set; }
-    public string ORDEREDBY { get; set; }
+    public string? ORDERCAT { get; set; }
+    public string? ORDEREDBY { get; set; }
     public DateTime INHOUSECANCELDATE { get; set; }
-    public string ORDERORIGIN { get; set; }
+    public string? ORDERORIGIN { get; set; }
     public DateTime ORDERDATE { get; set; }
-    public string SUPPLIERNO { get; set; }
-    public string FACTOR { get; set; }
-    public string FACTORAPPROVALNO { get; set; }
+    public string? SUPPLIERNO { get; set; }
+    public string? FACTOR { get; set; }
+    public string? FACTORAPPROVALNO { get; set; }
     public decimal COMMSPLIT { get; set; }
-    public string PRICECODE { get; set; }
-    public string MASTERBOL { get; set; }
-    public string MASTERVICSBOLNO { get; set; }
+    public string? PRICECODE { get; set; }
+    public string? MASTERBOL { get; set; }
+    public string? MASTERVICSBOLNO { get; set; }
     public int ORDREVNO { get; set; }
     public int CONSOLINVOICENO { get; set; }
-    public string ARCURRENTPERIOD { get; set; }
+    public string? ARCURRENTPERIOD { get; set; }
     public int ARCURRENTPERIODMONTH { get; set; }
     public int ARCURRENTPERIODYEAR { get; set; }
     public decimal FREIGHTCOST { get; set; }
-    public string BOLSHIPVIA { get; set; }
-    public string BOLSHIPTOCODE { get; set; }
-    public string BOLSHIPTOTYPE { get; set; }
-    public string CONTAINERID { get; set; }
+    public string? BOLSHIPVIA { get; set; }
+    public string? BOLSHIPTOCODE { get; set; }
+    public string? BOLSHIPTOTYPE { get; set; }
+    public string? CONTAINERID { get; set; }
     public decimal GROSSAMT { get; set; }
     public decimal DISCOUNTAMT { get; set; }
     public decimal MERCHCOST { get; set; }
     public decimal ROYALTYAMT { get; set; }
-    public string RUSHORDER { get; set; }
-    public string COD { get; set; }
-    public string CODTAGS { get; set; }
-    public string PRONO { get; set; }
-    public string REFERENCE { get; set; }
+    public string? RUSHORDER { get; set; }
+    public string? COD { get; set; }
+    public string? CODTAGS { get; set; }
+    public string? PRONO { get; set; }
+    public string? REFERENCE { get; set; }
     public DateTime CREATEDDATE { get; set; }
-    public string BOLFREIGHTTERMS { get; set; }
-    public string CURRENCY { get; set; }
+    public string? BOLFREIGHTTERMS { get; set; }
+    public string? CURRENCY { get; set; }
     public int WAVENO { get; set; }
-    public string PACKPREFERENCE { get; set; }
-    public string COMPANYCODE { get; set; }
+    public string? PACKPREFERENCE { get; set; }
+    public string? COMPANYCODE { get; set; }
     public int INVOICENOCOMPANY { get; set; }
     public int PICKNOCOMPANY { get; set; }
     public int ORDERNOCOMPANY { get; set; }
-    public string BOLNOCOMPANY { get; set; }
+    public string? BOLNOCOMPANY { get; set; }
     public int CONSOLINVOICENOCOMPANY { get; set; }
     public int EDI940BATCHNUM { get; set; }
-    public string ORDERREFERENCE { get; set; }
-    public string PROCESSED810FACTOR { get; set; }
+    public string? ORDERREFERENCE { get; set; }
+    public string? PROCESSED810FACTOR { get; set; }
     public DateTime PROCESSED810FACTORDATE { get; set; }
     public int SHIPPINGCONFBATCHNO { get; set; }
-    public string INVOICECONFIRMEDFLAG { get; set; }
-    public string COMM2 { get; set; }
+    public string? INVOICECONFIRMEDFLAG { get; set; }
+    public string? COMM2 { get; set; }
     public DateTime MABDATE { get; set; }
     public DateTime SHIPONDATE { get; set; }
     public DateTime CFMSHIPONDATE { get; set; }
     public decimal DISCOUNTRATE { get; set; }
-    public string DISCOUNTDESC { get; set; }
-    public string DISCOUNTSHOWCODE { get; set; }
-    public string BACKORDERALLOW { get; set; }
-    public string SKIP856 { get; set; }
-    public string WEBUDF01 { get; set; }
-    public string WEBUDF02 { get; set; }
-    public string SENDSPSTRACKINGNO { get; set; }
+    public string? DISCOUNTDESC { get; set; }
+    public string? DISCOUNTSHOWCODE { get; set; }
+    public string? BACKORDERALLOW { get; set; }
+    public string? SKIP856 { get; set; }
+    public string? WEBUDF01 { get; set; }
+    public string? WEBUDF02 { get; set; }
+    public string? SENDSPSTRACKINGNO { get; set; }
     public DateTime PRINTEDDATE { get; set; }
-    public string BASECURRENCY { get; set; }
+    public string? BASECURRENCY { get; set; }
     public decimal EXCHRATE { get; set; }
-    public string EXCHRATETYPE { get; set; }
-    public string ARPREAUTHALLOWANCEFLAG { get; set; }
-    public string REVERSEDSTATUS { get; set; }
+    public string? EXCHRATETYPE { get; set; }
+    public string? ARPREAUTHALLOWANCEFLAG { get; set; }
+    public string? REVERSEDSTATUS { get; set; }
     public int SALESJOURNALNO { get; set; }
     public int COGSJOURNALNO { get; set; }
     public int INVOICEJOURNALNO { get; set; }
-    public string INVCURRENTPERIOD { get; set; }
+    public string? INVCURRENTPERIOD { get; set; }
     public int INVCURRENTPERIODMONTH { get; set; }
     public int INVCURRENTPERIODYEAR { get; set; }
     public int SWCNO { get; set; }
-    public string CUSTOMERREP { get; set; }
+    public string? CUSTOMERREP { get; set; }
     public decimal FCCOMMRATE { get; set; }
-    public string FCINVOICEMETH { get; set; }
-    public string FCSALECOMMMETH { get; set; }
-    public string VENDOR { get; set; }
-    public string BILLING3PLPROC { get; set; }
+    public string? FCINVOICEMETH { get; set; }
+    public string? FCSALECOMMMETH { get; set; }
+    public string? VENDOR { get; set; }
+    public string? BILLING3PLPROC { get; set; }
     public decimal MERCHCOSTBASE { get; set; }
-    public string PREBILLFLAG { get; set; }
-    public string CONTRACTNO { get; set; }
-    public string INTERNALCLAIMSREP { get; set; }
-    public string PROCESSED850 { get; set; }
-    public string FREIGHTCAP { get; set; }
-    public string TAXPROCESSFLAG { get; set; }
-    public string PRINTEDPDFFLAG { get; set; }
+    public string? PREBILLFLAG { get; set; }
+    public string? CONTRACTNO { get; set; }
+    public string? INTERNALCLAIMSREP { get; set; }
+    public string? PROCESSED850 { get; set; }
+    public string? FREIGHTCAP { get; set; }
+    public string? TAXPROCESSFLAG { get; set; }
+    public string? PRINTEDPDFFLAG { get; set; }
 }
