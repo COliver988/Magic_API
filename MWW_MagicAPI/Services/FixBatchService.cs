@@ -1,9 +1,11 @@
 using CsvHelper;
+using CsvHelper.Configuration;
 using Microsoft.EntityFrameworkCore;
 using MWW_Api.Config;
 using MWW_Api.Models.Shopfloor;
 using MWW_Api.Repositories.Exenta;
 using MWW_MagicAPI.Data.Models.DTO;
+using System.Globalization;
 using System.Text;
 
 namespace MWW_MagicAPI.Services;
@@ -16,6 +18,11 @@ public class FixBatchService : IFixBatchService
     private IGetBatchUnitValues _getBatchUnitValues;
     private ShopfloorDbContext _context;
     private string _timeStamp;
+    private static readonly HashSet<string> ExcludedStatuses = new(StringComparer.OrdinalIgnoreCase)
+    {
+       "queue", "ready", "pods"
+    };
+
 
     public FixBatchService(IShopfloorDbContextFactory contextFactory,
         MagicDbContext magicDbContext,
@@ -82,9 +89,14 @@ public class FixBatchService : IFixBatchService
     private void write_to_workorder_file(List<WorkOrderDataDTO> workorderData, string batchId)
     {
         if (workorderData == null || workorderData.Count() == 0) return;
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            Delimiter = ",", // Specify the delimiter
+            Mode = CsvMode.NoEscape, // Disable escaping and quoting
+        };
         string tempFilePath = Path.Combine(Path.GetTempFileName());
         using (StreamWriter writer = new StreamWriter(tempFilePath, false, Encoding.UTF8))
-        using (var csv = new CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture))
+        using (var csv = new CsvWriter(writer, config))
         {
             csv.WriteRecords(workorderData);
         }
@@ -103,12 +115,17 @@ public class FixBatchService : IFixBatchService
 
     private async Task write_to_workorder_units_file(string batchId)
     {
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            Delimiter = ",", // Specify the delimiter
+            Mode = CsvMode.NoEscape, // Disable escaping and quoting
+        };
         string tempFilePath = Path.Combine(Path.GetTempFileName());
         Directory.CreateDirectory(Path.GetDirectoryName(tempFilePath)!);
         List<WorkOrderUnitData> unitData = await GetFormattedPrintDetails(batchId);
 
         using (StreamWriter writer = new StreamWriter(tempFilePath, false, Encoding.UTF8))
-        using (var csv = new CsvWriter(writer, System.Globalization.CultureInfo.InvariantCulture))
+        using (var csv = new CsvWriter(writer, config))
         {
             csv.WriteRecords(unitData);
         }
@@ -125,14 +142,14 @@ public class FixBatchService : IFixBatchService
 
     private async Task<List<WorkOrderUnitData>> GetFormattedPrintDetails(string batchId)
     {
-        return await (from dpd in _magicDbContext.DyePrintDetails
-                      join ack in _magicDbContext.ExentaPOLinesWithAckNos
+        return await (from dpd in _magicDbContext.DyePrintDetails.AsNoTracking()
+                      join ack in _magicDbContext.ExentaPOLinesWithAckNos.AsNoTracking()
                           on new { dpd.PO, LineNo = (int)dpd.Ln_No } equals new { ack.PO, LineNo = ack.LN_NO }
-                      join doh in _magicDbContext.DyePrintHeaders
+                      join doh in _magicDbContext.DyePrintHeaders.AsNoTracking()
                           on dpd.PO equals doh.PO
                       from dih in _magicDbContext.DyeItemAttributes
                       where dpd.BatchID == batchId
-                            && !new[] { "queue", "ready", "pods" }.Contains(dpd.Status)
+                            && !ExcludedStatuses.Contains(dpd.Status)
                             && (doh.ItemCode == dih.MWWItemCode || doh.ItemCode == (dih.MWWItemCode + "-1"))
                       orderby dpd.printedOrder
                       select new WorkOrderUnitData
@@ -174,6 +191,11 @@ public class FixBatchService : IFixBatchService
         return units;
     }
 
+    /// <summary>
+    /// get units from Magic database for the specified batch ID
+    /// </summary>
+    /// <param name="batchId"></param>
+    /// <returns></returns>
     private async Task<List<MagicUnit>> getUnitsFromMagic(string batchId)
     {
         var rawResults = await _magicDbContext.DyePrintDetails
@@ -200,6 +222,12 @@ public class FixBatchService : IFixBatchService
         return magicUnits;
     }
 
+    /// <summary>
+    /// determine the mounted drive to write the workorder file to based on batch prefix
+    /// </summary>
+    /// <param name="batchID">batch ID string</param>
+    /// <returns>correct mounted drive location</returns>
+    /// <exception cref="InvalidOperationException"></exception>
     private string getPath(string batchID)
     {
         var shopfloor = _configuration.GetSection("Shopfloor");
