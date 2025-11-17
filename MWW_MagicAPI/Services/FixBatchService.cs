@@ -22,7 +22,11 @@ public class FixBatchService : IFixBatchService
     {
        "queue", "ready", "pods"
     };
-
+    private CsvConfiguration _csvConfig = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            Delimiter = ",", // Specify the delimiter
+            Mode = CsvMode.NoEscape, // Disable escaping and quoting
+        };
 
     public FixBatchService(IShopfloorDbContextFactory contextFactory,
         MagicDbContext magicDbContext,
@@ -89,14 +93,9 @@ public class FixBatchService : IFixBatchService
     private void write_to_workorder_file(List<WorkOrderDataDTO> workorderData, string batchId)
     {
         if (workorderData == null || workorderData.Count() == 0) return;
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
-        {
-            Delimiter = ",", // Specify the delimiter
-            Mode = CsvMode.NoEscape, // Disable escaping and quoting
-        };
         string tempFilePath = Path.Combine(Path.GetTempFileName());
         using (StreamWriter writer = new StreamWriter(tempFilePath, false, Encoding.UTF8))
-        using (var csv = new CsvWriter(writer, config))
+        using (var csv = new CsvWriter(writer, _csvConfig))
         {
             csv.WriteRecords(workorderData);
         }
@@ -115,17 +114,12 @@ public class FixBatchService : IFixBatchService
 
     private async Task write_to_workorder_units_file(string batchId)
     {
-        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
-        {
-            Delimiter = ",", // Specify the delimiter
-            Mode = CsvMode.NoEscape, // Disable escaping and quoting
-        };
         string tempFilePath = Path.Combine(Path.GetTempFileName());
         Directory.CreateDirectory(Path.GetDirectoryName(tempFilePath)!);
         List<WorkOrderUnitData> unitData = await GetFormattedPrintDetails(batchId);
 
         using (StreamWriter writer = new StreamWriter(tempFilePath, false, Encoding.UTF8))
-        using (var csv = new CsvWriter(writer, config))
+        using (var csv = new CsvWriter(writer, _csvConfig))
         {
             csv.WriteRecords(unitData);
         }
