@@ -166,29 +166,33 @@ public class FixBatchService : IFixBatchService
                       }).ToListAsync();
     }
 
+    /// <summary>
+    /// compare magic units to shopfloor units and return missing ones
+    /// </summary>
+    /// <param name="batchId"></param>
+    /// <returns></returns>
     private async Task<List<MagicUnit>> getMissingBatches(string batchId)
     {
-        List<Unit> unitsInShopfloor = await getUnitsFromShopfloor(batchId);
+        List<string> unitsInShopfloor = await getUnitsFromShopfloor(batchId);
         List<MagicUnit> unitsInMagic = await getUnitsFromMagic(batchId);
-        var shopFloorKeys = unitsInShopfloor
-            .Select(u => $"{u.BatchId}_{u.BatchSeq}")
-            .ToHashSet();
-
-        var filteredMagicUnits = unitsInMagic
-            .Where(d => !shopFloorKeys.Contains($"{d.BatchID}_{d.PrintOrder}"))
+        return unitsInMagic
+            .Where(d => !unitsInShopfloor.Contains($"{d.BatchID}_{d.PrintOrder}"))
             .OrderBy(d => d.PrintOrder)
             .ToList();
-
-        return filteredMagicUnits;
     }
 
-    private async Task<List<Unit>> getUnitsFromShopfloor(string batchId)
+    /// <summary>
+    /// return just the alphanumid for a simple match
+    /// </summary>
+    /// <param name="batchId"></param>
+    /// <returns></returns>
+    private async Task<List<string>> getUnitsFromShopfloor(string batchId)
     {
-        var units = await _context.Units
+        return await _context.Units
             .Where(u => u.BatchId == batchId)
+            .Select(u => u.AlphaNumId)
             .AsNoTracking()
             .ToListAsync();
-        return units;
     }
 
     /// <summary>
