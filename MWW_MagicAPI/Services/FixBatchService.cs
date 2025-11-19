@@ -145,6 +145,7 @@ public class FixBatchService : IFixBatchService
                       from dih in _magicDbContext.DyeItemAttributes
                       where dpd.BatchID == batchId
                             && !ExcludedStatuses.Contains(dpd.Status)
+                            && (doh.ItemCode == dih.MWWItemCode || doh.ItemCode == (dih.MWWItemCode + "-1"))
                       orderby dpd.printedOrder
                       select new WorkOrderUnitData
                       {
@@ -196,15 +197,14 @@ public class FixBatchService : IFixBatchService
     /// <returns></returns>
     private async Task<List<MagicUnit>> getUnitsFromMagic(string batchId)
     {
-        var rawResults = await _magicDbContext.DyePrintDetails
+        var rawResults = await _magicDbContext.DyePrintDetails.AsNoTracking()
             .Where(dpd => dpd.BatchID == batchId)
             .Join(
-                _magicDbContext.ExentaPOLinesWithAckNos,
+                _magicDbContext.ExentaPOLinesWithAckNos.AsNoTracking(),
                 dpd => new { dpd.PO, LineNo = (int)dpd.Ln_No },
                 ack => new { PO = ack.PO, LineNo = ack.LN_NO },
                 (dpd, ack) => new { dpd, ack }
             )
-            .AsNoTracking()
             .ToListAsync();
 
         var magicUnits = rawResults
