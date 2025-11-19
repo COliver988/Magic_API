@@ -145,7 +145,6 @@ public class FixBatchService : IFixBatchService
                       from dih in _magicDbContext.DyeItemAttributes
                       where dpd.BatchID == batchId
                             && !ExcludedStatuses.Contains(dpd.Status)
-                            && (doh.ItemCode == dih.MWWItemCode || doh.ItemCode == (dih.MWWItemCode + "-1"))
                       orderby dpd.printedOrder
                       select new WorkOrderUnitData
                       {
