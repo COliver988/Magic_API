@@ -33,10 +33,10 @@ public class GetBatchUnitValues : IGetBatchUnitValues
     {
         using var transaction = await exentaContext.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadUncommitted);
 
-        var query = from poh in exentaContext.ProdOrderHeaders
-                    join pod in exentaContext.ProdOrderDetails
+        var query = from poh in exentaContext.ProdOrderHeaders.AsNoTracking()
+                    join pod in exentaContext.ProdOrderDetails.AsNoTracking()
                         on poh.PKEY equals pod.FKEY
-                    join oh in exentaContext.OrderHeaders
+                    join oh in exentaContext.OrderHeaders.AsNoTracking()
                         on poh.ORDERNO equals oh.ORDERNO
                     where pod.PRODSTAGE == "MAKE" && poh.PRODNOCOMPANY == prodNoCompany
                     select new
