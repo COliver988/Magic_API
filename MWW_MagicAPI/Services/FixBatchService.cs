@@ -45,6 +45,7 @@ public class FixBatchService : IFixBatchService
         // get the correct Shopfloor context
         _context = _contextFactory.GetContext(batchId);
         List<WorkOrderDataDTO> workorderData = await gatherWorkorderData(batchId);
+        if (workorderData == null || !workorderData.Any()) return null;
         write_to_workorder_file(workorderData, batchId);
         await write_to_workorder_units_file(batchId);
 
