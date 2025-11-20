@@ -25,14 +25,16 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         _logger = logger;
     }
 
-    public void UpdateExentaStatuses(int minutes)
+    public bool UpdateExentaStatuses(int minutes)
     {
+        bool results = true;
         foreach (string sf in _shopfloors)
         {
             _logger.LogInformation($"Exenta update status starting for {sf}");
             List<UpdateData> data = GetUpdateData(minutes, _contextFactory.GetContext(sf));
             _logger.LogInformation($"Exenta update status ending for {sf}");
         }
+        return results;
     }
 
     public List<UpdateData> GetUpdateData(int minutes, ShopfloorDbContext context)
