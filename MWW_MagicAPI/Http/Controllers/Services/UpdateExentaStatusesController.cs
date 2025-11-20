@@ -6,10 +6,17 @@ namespace MWW_MagicAPI.Http.Controllers.Services;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize]
+//[Authorize]
 public class UpdateExentaStatusesController : Controller
 {
     private readonly IUpdateExentaStatusesService _updateExentaStatusesService;
+
+    public UpdateExentaStatusesController(IUpdateExentaStatusesService updateExentaStatusesService)
+    {
+        _updateExentaStatusesService = updateExentaStatusesService;
+    }
+
+    [HttpGet("UpdateExentaStatuses/{minutes}")]
     public IActionResult UpdateExentStatuses(int minutes)
     {
         try

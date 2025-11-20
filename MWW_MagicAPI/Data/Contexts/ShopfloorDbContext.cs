@@ -17,6 +17,10 @@ public class ShopfloorDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<Unit>().ToTable("Unit", schema: "dbo");
+        modelBuilder.Entity<Transaction>().ToTable("Transaction", schema: "dbo");
+        modelBuilder.Entity<MileStone>().ToTable("MileStone", schema: "dbo");
+        modelBuilder.Entity<ProductOperation>().ToTable("ProductOperation", schema: "dbo");
+        modelBuilder.Entity<WorkOrder>().ToTable("WorkOrder", schema: "dbo");
     }
 }
 

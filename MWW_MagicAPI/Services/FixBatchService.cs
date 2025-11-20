@@ -2,7 +2,6 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using Microsoft.EntityFrameworkCore;
 using MWW_Api.Config;
-using MWW_Api.Models.Shopfloor;
 using MWW_Api.Repositories.Exenta;
 using MWW_MagicAPI.Data.Models.DTO;
 using System.Globalization;
@@ -183,7 +182,7 @@ public class FixBatchService : IFixBatchService
     /// <returns></returns>
     private async Task<List<string>> getUnitsFromShopfloor(string batchId)
     {
-        return await _context.Units
+        return await _context.Units.AsNoTracking()
             .Where(u => u.BatchId == batchId)
             .Select(u => u.AlphaNumId)
             .AsNoTracking()

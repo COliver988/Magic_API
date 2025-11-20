@@ -60,6 +60,7 @@ try
     // factories and services
     builder.Services.AddScoped<IShopfloorDbContextFactory, ShopfloorDbContextFactory>();
     builder.Services.AddScoped<IFixBatchService, FixBatchService>();
+    builder.Services.AddScoped<IUpdateExentaStatusesService, UpdateExentaStatusesService>();
 
 
 

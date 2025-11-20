@@ -5,7 +5,7 @@ namespace MWW_MagicAPI.Services;
 
 public class UpdateExentaStatusesService : IUpdateExentaStatusesService
 {
-    private ShopfloorDbContextFactory _contextFactory;
+    private readonly IShopfloorDbContextFactory _contextFactory;
     private ILogger<UpdateExentaStatusesService> _logger;
     private List<string> _shopfloors  = new List<string>() { "HV", "PD", "TJ", "GM" };
     public record UpdateData
@@ -18,7 +18,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         public DateTime Created { get; set; }
     }
 
-    public UpdateExentaStatusesService(ShopfloorDbContextFactory contextFactory,
+    public UpdateExentaStatusesService(IShopfloorDbContextFactory contextFactory,
         ILogger<UpdateExentaStatusesService> logger)
     {
         _contextFactory = contextFactory;
@@ -27,32 +27,59 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
 
     public bool UpdateExentaStatuses(int minutes)
     {
-        bool results = true;
+        List<UpdateData> data = CollectData(minutes);
+        return UpdateMagic(data);
+    }
+
+    /// <summary>
+    /// update the magic DB with the new status
+    /// </summary>
+    /// <param name="data"></param>
+    /// <returns></returns>
+    private bool UpdateMagic(List<UpdateData> data)
+    {
+        return true;
+    }
+
+    /// <summary>
+    /// get all the data to update for all DBs
+    /// </summary>
+    /// <param name="minutes"></param>
+    /// <returns>distinct PO / serial number data to update</returns>
+    public List<UpdateData> CollectData(int minutes)
+    {
+        List<UpdateData> data = new();
         foreach (string sf in _shopfloors)
         {
             _logger.LogInformation($"Exenta update status starting for {sf}");
-            List<UpdateData> data = GetUpdateData(minutes, _contextFactory.GetContext(sf));
+            data.AddRange(GetUpdateData(minutes, _contextFactory.GetContext(sf)));
             _logger.LogInformation($"Exenta update status ending for {sf}");
         }
-        return results;
+        return data.DistinctBy(x => x.SerialNumber).ToList();
     }
 
-    public List<UpdateData> GetUpdateData(int minutes, ShopfloorDbContext context)
+    /// <summary>
+    /// get the update data for a specific DB instance
+    /// </summary>
+    /// <param name="minutes"></param>
+    /// <param name="context"></param>
+    /// <returns></returns>
+    private List<UpdateData> GetUpdateData(int minutes, ShopfloorDbContext context)
     {
         // Calculate cutoff time (equivalent to DATEADD(minute, -args.time, GETUTCDATE()))
         DateTime cutoff = DateTime.UtcNow.AddMinutes(-minutes);
 
         var query =
             from u in context.Units.AsNoTracking()
-            join t in context.Transactions
+            join t in context.Transactions.AsNoTracking()
                 on u.Id equals t.UnitId into ut // LEFT JOIN
             from t in ut.DefaultIfEmpty()
             join wo in context.WorkOrders.AsNoTracking()
                 on t.WorkorderId equals wo.Id
-            join po in context.ProductOperations
+            join po in context.ProductOperations.AsNoTracking()
                 on new { t.OperationId, wo.ProductId }
                 equals new { po.OperationId, po.ProductId }
-            join m in context.MileStones
+            join m in context.MileStones.AsNoTracking()
                 on po.MileStoneId equals m.Id
             where m.Name != "READY"
                   && t.DateTime >= cutoff
