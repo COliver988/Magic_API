@@ -8,6 +8,10 @@ public class ShopfloorDbContext : DbContext
     public ShopfloorDbContext(DbContextOptions options) : base(options) { }
 
     public DbSet<Unit> Units { get; set; }
+    public DbSet<MileStone> MileStones { get; set; }
+    public DbSet<Transaction> Transactions { get; set; }
+    public DbSet<WorkOrder> WorkOrders { get; set; }
+    public DbSet<ProductOperation> ProductOperations { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
