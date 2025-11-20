@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MWW_Api.Config;
+using System;
 
 namespace MWW_MagicAPI.Services;
 
@@ -8,6 +9,33 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     private readonly IShopfloorDbContextFactory _contextFactory;
     private ILogger<UpdateExentaStatusesService> _logger;
     private List<string> _shopfloors  = new List<string>() { "HV", "PD", "TJ", "GM" };
+    private List<string> excludedStatuses = new List<string>() { "shipped", "cancelled", "cancel", "ready", "pods", "toqc", "stship" };
+    string[] progression = new string[]
+    {
+        "printed",
+        "Printed",
+        "PRINTED",
+        "ToTenter",
+        "AtTenter",
+        "InTenter",
+        "waitingLoom",
+        "ToStretch",
+        "stretch",
+        "inLoom",
+        "ToCut",
+        "toCut",
+        "ToPack",
+        "ToPB",
+        "ToProc",
+        "ToFinishing",
+        "InPB",
+        "ToSew",
+        "InSew",
+        "ToCircleTack",
+        "ToShip",
+        "cancel"
+    };
+
     public record UpdateData
     {
         public string AlphaNumId { get; set; }
@@ -16,6 +44,16 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         public long ProductId { get; set; }
         public string SerialNumber { get; set; }
         public DateTime Created { get; set; }
+    }
+
+    public record LegacyData
+    {
+        public string Po { get; set; }
+        public string Co { get; set; }
+        public string CcApproved { get; set; }
+        public string LnNo { get; set; }
+        public string Status { get; set; }
+        public string BatchSeq { get; set; }
     }
 
     public UpdateExentaStatusesService(IShopfloorDbContextFactory contextFactory,
@@ -96,5 +134,28 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
 
         List<UpdateData> results = query.Distinct().ToList();
         return results;
+    }
+
+    private List<LegacyData> GetLegacyData()
+    {
+        // Entity Framework LINQ query
+        var query = from dpd in context.DyePrintDetails
+                    join dp in context.DapPartners
+                        on dpd.Po equals dp.Po
+                    where !excludedStatuses.Contains(dpd.Status)
+                    select new LegacyData
+                    {
+                        Po = dpd.Po,
+                        Co = dpd.CoNumber,
+                        CcApproved = dpd.CcApproved,
+                        LnNo = dpd.LnNo,
+                        Status = dpd.Status,
+                        BatchSeq = dpd.BatchId + "_" + dpd.PrintOrder
+                    };
+
+        // Execute query (e.g., ToList)
+        var results = query.ToList();
+        return results;
+
     }
 }
