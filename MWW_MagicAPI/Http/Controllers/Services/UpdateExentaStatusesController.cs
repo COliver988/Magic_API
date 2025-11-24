@@ -17,11 +17,11 @@ public class UpdateExentaStatusesController : Controller
     }
 
     [HttpGet("UpdateExentaStatuses/{minutes}")]
-    public IActionResult UpdateExentStatuses(int minutes)
+    public async Task<IActionResult> UpdateExentStatuses(int minutes)
     {
         try
         {
-            bool result = _updateExentaStatusesService.UpdateExentaStatuses(minutes);
+            bool result = await _updateExentaStatusesService.UpdateExentaStatuses(minutes);
             if (result)
             {
                 return Ok(new { Message = "Exenta statuses updated successfully." });

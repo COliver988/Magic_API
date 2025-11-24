@@ -1,39 +1,24 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MWW_Api.Config;
+using MWW_Api.Repositories.Magic;
 using System;
+using System.Threading.Tasks;
 
 namespace MWW_MagicAPI.Services;
 
 public class UpdateExentaStatusesService : IUpdateExentaStatusesService
 {
     private readonly IShopfloorDbContextFactory _contextFactory;
+    private readonly MagicDbContext _magicContext;
     private ILogger<UpdateExentaStatusesService> _logger;
     private List<string> _shopfloors  = new List<string>() { "HV", "PD", "TJ", "GM" };
     private List<string> excludedStatuses = new List<string>() { "shipped", "cancelled", "cancel", "ready", "pods", "toqc", "stship" };
-    string[] progression = new string[]
+    string[] _progression = new string[]
     {
-        "printed",
-        "Printed",
-        "PRINTED",
-        "ToTenter",
-        "AtTenter",
-        "InTenter",
-        "waitingLoom",
-        "ToStretch",
-        "stretch",
-        "inLoom",
-        "ToCut",
-        "toCut",
-        "ToPack",
-        "ToPB",
-        "ToProc",
-        "ToFinishing",
-        "InPB",
-        "ToSew",
-        "InSew",
-        "ToCircleTack",
-        "ToShip",
-        "cancel"
+        "printed", "Printed", "PRINTED", "ToTenter", "AtTenter",
+        "InTenter", "waitingLoom", "ToStretch", "stretch", "inLoom",
+        "ToCut", "toCut", "ToPack", "ToPB", "ToProc", "ToFinishing", 
+        "InPB", "ToSew", "InSew", "ToCircleTack", "ToShip", "cancel"
     };
 
     public record UpdateData
@@ -57,24 +42,61 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     }
 
     public UpdateExentaStatusesService(IShopfloorDbContextFactory contextFactory,
-        ILogger<UpdateExentaStatusesService> logger)
+        ILogger<UpdateExentaStatusesService> logger,
+        MagicDbContext magicContext)
     {
         _contextFactory = contextFactory;
+        _magicContext = magicContext;
         _logger = logger;
     }
 
-    public bool UpdateExentaStatuses(int minutes)
+    public async Task<bool> UpdateExentaStatuses(int minutes)
     {
+        // get all data to update from shopfloor DBs
         List<UpdateData> data = CollectData(minutes);
-        return UpdateMagic(data);
+        if (data.Count == 0)
+        {
+            _logger.LogInformation("No Exenta status updates found.");
+            return true;
+        }
+        // get existing magic data
+        List<LegacyData> legacyData = await GetLegacyData();
+
+        return await UpdateMagic(data, legacyData);
     }
 
     /// <summary>
     /// update the magic DB with the new status
     /// </summary>
-    /// <param name="data"></param>
+    /// <param name="data">data to update</param>
+    /// <param name="overlap">pos in magic so only update these</param>
     /// <returns></returns>
-    private bool UpdateMagic(List<UpdateData> data)
+    private async Task<bool> UpdateMagic(List<UpdateData> data, List<LegacyData> currentData)
+    {
+        foreach (LegacyData current in currentData)
+        {
+            if (!data.Any(d => d.SerialNumber == current.Po))
+            {
+                _logger.LogInformation($"No matching shopfloor data found for PO: {current.Po}, skipping update.");
+                continue;
+            }
+            UpdateData toUpdate = data.First(d => d.SerialNumber == current.Po);
+            int currentIdx = Array.IndexOf(_progression, current.Status);
+            int newIdx = Array.IndexOf(_progression, toUpdate.MilestoneName);
+            if (newIdx <= currentIdx)
+            {
+                _logger.LogInformation($"Current status for PO: {current.Po}, CO: {current.Co}, LN: {current.LnNo} is more advanced ({current.Status}) than new status ({toUpdate.MilestoneName}), skipping update.");
+                continue;
+            }
+            
+            bool updated = await UpdateMagicStatus(toUpdate);
+            if (!updated)
+                _logger.LogError($"Failed to update status for PO: {current.Po}, CO: {current.Co}, LN: {current.LnNo} to {toUpdate.MilestoneName}.");
+        }
+        return true;
+    }
+
+    private async Task<bool> UpdateMagicStatus(UpdateData updateData)
     {
         return true;
     }
@@ -97,7 +119,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     }
 
     /// <summary>
-    /// get the update data for a specific DB instance
+    /// get the update data for a specific Shopfloor DB instance
     /// </summary>
     /// <param name="minutes"></param>
     /// <param name="context"></param>
@@ -136,26 +158,24 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         return results;
     }
 
-    private List<LegacyData> GetLegacyData()
+    private async Task<List<LegacyData>> GetLegacyData()
     {
         // Entity Framework LINQ query
-        var query = from dpd in context.DyePrintDetails
-                    join dp in context.DapPartners
-                        on dpd.Po equals dp.Po
+        var query = from dpd in _magicContext.DyePrintDetails.AsNoTracking()
+                    join dp in _magicContext.DapPartners.AsNoTracking()
+                        on dpd.PO equals dp.PO
                     where !excludedStatuses.Contains(dpd.Status)
                     select new LegacyData
                     {
-                        Po = dpd.Po,
-                        Co = dpd.CoNumber,
-                        CcApproved = dpd.CcApproved,
-                        LnNo = dpd.LnNo,
+                        Po = dpd.PO,
+                        Co = dpd.CO_Number,
+                        CcApproved = dp.CC_APPROVED,
+                        LnNo = dpd.Ln_No.ToString(),
                         Status = dpd.Status,
-                        BatchSeq = dpd.BatchId + "_" + dpd.PrintOrder
+                        BatchSeq = dpd.BatchID + "_" + dpd.PrintOrder
                     };
 
         // Execute query (e.g., ToList)
-        var results = query.ToList();
-        return results;
-
+        return await query.ToListAsync();
     }
 }
