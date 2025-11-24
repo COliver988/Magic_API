@@ -148,7 +148,7 @@ try
     Log.Information(builder.Configuration.GetConnectionString("Database:Serilog"));
     Log.Information(builder.Configuration.GetConnectionString("Database:Magic"));
     Log.Information(builder.Configuration.GetConnectionString("Database:Exenta"));
-    Log.Information(builder.Configuration.GetConnectionString("Database:ShopfloorPD"));
+    Log.Information(builder.Configuration.GetConnectionString("Database:ShopfloorHV"));
 
     app.Run();
 }

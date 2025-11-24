@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using MWW_Api.Config;
 using MWW_Api.Repositories.Magic;
 using System;
@@ -53,7 +54,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     public async Task<bool> UpdateExentaStatuses(int minutes)
     {
         // get all data to update from shopfloor DBs
-        List<UpdateData> data = CollectData(minutes);
+        List<UpdateData> data = await CollectData(minutes);
         if (data.Count == 0)
         {
             _logger.LogInformation("No Exenta status updates found.");
@@ -73,6 +74,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     /// <returns></returns>
     private async Task<bool> UpdateMagic(List<UpdateData> data, List<LegacyData> currentData)
     {
+        Dictionary<string, List<string>> updateOrders = new(); // status and list of POs to be updated to the new status
         foreach (LegacyData current in currentData)
         {
             if (!data.Any(d => d.SerialNumber == current.Po))
@@ -89,14 +91,32 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
                 continue;
             }
             
-            bool updated = await UpdateMagicStatus(toUpdate);
-            if (!updated)
-                _logger.LogError($"Failed to update status for PO: {current.Po}, CO: {current.Co}, LN: {current.LnNo} to {toUpdate.MilestoneName}.");
+            AddToUpdatedOrders(toUpdate.MilestoneName, current.Po, updateOrders);
         }
-        return true;
+
+        // now update the magic DB
+        return await UpdateMagicStatus(updateOrders);
     }
 
-    private async Task<bool> UpdateMagicStatus(UpdateData updateData)
+    /// <summary>
+    /// add PO to the list of orders to be updated for a specific milestone
+    /// </summary>
+    /// <param name="milestoneName"></param>
+    /// <param name="po"></param>
+    /// <param name="updateOrders"></param>
+    private void AddToUpdatedOrders(string milestoneName, string po, Dictionary<string, List<string>> updateOrders)
+    {
+        if (updateOrders.ContainsKey(milestoneName))
+        {
+            updateOrders[milestoneName].Add(po);
+        }
+        else
+        {
+            updateOrders[milestoneName] = new List<string> { po };
+        }
+    }
+
+    private async Task<bool> UpdateMagicStatus(Dictionary<string, List<string>> updateData)
     {
         return true;
     }
@@ -106,13 +126,13 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     /// </summary>
     /// <param name="minutes"></param>
     /// <returns>distinct PO / serial number data to update</returns>
-    public List<UpdateData> CollectData(int minutes)
+    public async Task<List<UpdateData>> CollectData(int minutes)
     {
         List<UpdateData> data = new();
         foreach (string sf in _shopfloors)
         {
             _logger.LogInformation($"Exenta update status starting for {sf}");
-            data.AddRange(GetUpdateData(minutes, _contextFactory.GetContext(sf)));
+            data.AddRange(await GetUpdateData(minutes, _contextFactory.GetContext(sf)));
             _logger.LogInformation($"Exenta update status ending for {sf}");
         }
         return data.DistinctBy(x => x.SerialNumber).ToList();
@@ -124,25 +144,23 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     /// <param name="minutes"></param>
     /// <param name="context"></param>
     /// <returns></returns>
-    private List<UpdateData> GetUpdateData(int minutes, ShopfloorDbContext context)
+    private async Task<List<UpdateData>> GetUpdateData(int minutes, ShopfloorDbContext context)
     {
         // Calculate cutoff time (equivalent to DATEADD(minute, -args.time, GETUTCDATE()))
         DateTime cutoff = DateTime.UtcNow.AddMinutes(-minutes);
 
         var query =
-            from u in context.Units.AsNoTracking()
-            join t in context.Transactions.AsNoTracking()
-                on u.Id equals t.UnitId into ut // LEFT JOIN
-            from t in ut.DefaultIfEmpty()
-            join wo in context.WorkOrders.AsNoTracking()
-                on t.WorkorderId equals wo.Id
-            join po in context.ProductOperations.AsNoTracking()
-                on new { t.OperationId, wo.ProductId }
-                equals new { po.OperationId, po.ProductId }
-            join m in context.MileStones.AsNoTracking()
-                on po.MileStoneId equals m.Id
+            from m in context.MileStones.AsNoTracking()
             where m.Name != "READY"
-                  && t.DateTime >= cutoff
+            join po in context.ProductOperations.AsNoTracking()
+                on m.Id equals po.MileStoneId
+            join wo in context.WorkOrders.AsNoTracking()
+                on po.ProductId equals wo.ProductId
+            join t in context.Transactions.AsNoTracking()
+                on new { wo.Id, po.OperationId } equals new { Id = t.WorkorderId, t.OperationId }
+            where t.DateTime >= cutoff
+            join u in context.Units.AsNoTracking()
+                on t.UnitId equals u.Id
             orderby t.Created descending
             select new UpdateData
             {
@@ -154,8 +172,16 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
                 Created = t.Created
             };
 
-        List<UpdateData> results = query.Distinct().ToList();
-        return results;
+        try
+        {
+            List<UpdateData> results = await query.Distinct().ToListAsync();
+            return results;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error retrieving update data: {ex.Message}");
+            return new List<UpdateData>();
+        }   
     }
 
     private async Task<List<LegacyData>> GetLegacyData()
