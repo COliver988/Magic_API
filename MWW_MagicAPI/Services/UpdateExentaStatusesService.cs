@@ -88,6 +88,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
             if (newIdx <= currentIdx)
             {
                 _logger.LogInformation($"Current status for PO: {current.Po}, CO: {current.Co}, LN: {current.LnNo} is more advanced ({current.Status}) than new status ({toUpdate.MilestoneName}), skipping update.");
+                _logger.LogInformation($"Current idx: {currentIdx}, New idx: {newIdx}");
                 continue;
             }
             
@@ -184,13 +185,17 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         }   
     }
 
+    /// <summary>
+    /// get existing magic data to compare against; only gets "active" orders
+    /// </summary>
+    /// <returns>list of orders that may need updating</returns>
     private async Task<List<LegacyData>> GetLegacyData()
     {
-        // Entity Framework LINQ query
         var query = from dpd in _magicContext.DyePrintDetails.AsNoTracking()
                     join dp in _magicContext.DapPartners.AsNoTracking()
                         on dpd.PO equals dp.PO
                     where !excludedStatuses.Contains(dpd.Status)
+                    where dp.DATE_PLACED >= DateTime.UtcNow.AddMonths(-3) // only get recent orders
                     select new LegacyData
                     {
                         Po = dpd.PO,
@@ -201,7 +206,6 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
                         BatchSeq = dpd.BatchID + "_" + dpd.PrintOrder
                     };
 
-        // Execute query (e.g., ToList)
         return await query.ToListAsync();
     }
 }
