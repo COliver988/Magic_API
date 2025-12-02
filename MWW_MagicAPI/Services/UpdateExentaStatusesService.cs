@@ -61,9 +61,9 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
             return true;
         }
         // get existing magic data
-        List<LegacyData> legacyData = await GetLegacyData();
+        //List<LegacyData> legacyData = await GetLegacyData();
 
-        return await UpdateMagic(data, legacyData);
+        return await UpdateMagic(data);
     }
 
     /// <summary>
@@ -72,9 +72,35 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     /// <param name="data">data to update</param>
     /// <param name="overlap">pos in magic so only update these</param>
     /// <returns></returns>
-    private async Task<bool> UpdateMagic(List<UpdateData> data, List<LegacyData> currentData)
+    private async Task<bool> UpdateMagic(List<UpdateData> data)
     {
         Dictionary<string, List<string>> updateOrders = new(); // status and list of POs to be updated to the new status
+        foreach (UpdateData toUpdate in data)
+        {
+            LegacyData? current = await _magicContext.DyePrintDetails.AsNoTracking()
+                .Where(dpd => dpd.PO == toUpdate.SerialNumber && !excludedStatuses.Contains(dpd.Status))
+                .Join(_magicContext.DapPartners.AsNoTracking(),
+                    dpd => dpd.PO,
+                    dp => dp.PO,
+                    (dpd, dp) => new LegacyData
+                    {
+                        Po = dpd.PO,
+                        Co = dpd.CO_Number,
+                        CcApproved = dp.CC_APPROVED,
+                        LnNo = dpd.Ln_No.ToString(),
+                        Status = dpd.Status,
+                        BatchSeq = dpd.BatchID + "_" + dpd.PrintOrder
+                    })
+                .FirstOrDefaultAsync();
+            if (current != null)
+            {
+                int currentIdx = Array.FindIndex(_progression, s => string.Equals(s, current.Status, StringComparison.OrdinalIgnoreCase));
+                int newIdx = Array.FindIndex(_progression, s => string.Equals(s, toUpdate.MilestoneName, StringComparison.OrdinalIgnoreCase));
+                if (newIdx > currentIdx)
+                    AddToUpdatedOrders(toUpdate.MilestoneName, toUpdate.SerialNumber, updateOrders);
+            }
+        }
+        /*
         foreach (LegacyData current in currentData)
         {
             if (!data.Any(d => d.SerialNumber == current.Po))
@@ -94,6 +120,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
             
             AddToUpdatedOrders(toUpdate.MilestoneName, current.Po, updateOrders);
         }
+        */
 
         // now update the magic DB
         return await UpdateMagicStatus(updateOrders);
