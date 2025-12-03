@@ -75,36 +75,37 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         List<LegacyData> updateOrders = new(); // status and list of POs to be updated to the new status
         foreach (UpdateData toUpdate in data)
         {
-            LegacyData? current = await _magicContext.DyePrintDetails.AsNoTracking()
-                .Where(dpd => dpd.PO == toUpdate.SerialNumber && !excludedStatuses.Contains(dpd.Status))
-                .Join(_magicContext.DapPartners.AsNoTracking(),
-                    dpd => dpd.PO,
-                    dp => dp.PO,
-                    (dpd, dp) => new LegacyData
-                    {
-                        Po = dpd.PO,
-                        Co = dpd.CO_Number,
-                        LnNo = dpd.Ln_No.ToString(),
-                        Status = dpd.Status,
-                        UserId = dp.CC_APPROVED, // legacy vendor ID aka CUID
-                        LineNumber = dpd.Ln_No.ToString(),
-                        BatchSeq = dpd.BatchID + "_" + dpd.PrintOrder
-                    })
-                .FirstOrDefaultAsync();
+            LegacyData? current = await LoadLegacyData(toUpdate.SerialNumber);
             if (current != null)
             {
                 int currentIdx = Array.FindIndex(_progression, s => string.Equals(s, current.Status, StringComparison.OrdinalIgnoreCase));
                 int newIdx = Array.FindIndex(_progression, s => string.Equals(s, toUpdate.MilestoneName, StringComparison.OrdinalIgnoreCase));
-                if (toUpdate.MilestoneName != "COMPLETE" && currentIdx != newIdx)
-                {
-                    string hi = "hi";
-                }
                 if (newIdx > currentIdx)
                     updateOrders.Add(current); 
             }
         }
-        // now update the magic DB
         return await UpdateMagicDB(updateOrders);
+    }
+
+    public async Task<LegacyData?> LoadLegacyData(string po)
+    {
+        LegacyData? current = await _magicContext.DyePrintDetails.AsNoTracking()
+            .Where(dpd => dpd.PO == po && !excludedStatuses.Contains(dpd.Status))
+            .Join(_magicContext.DapPartners.AsNoTracking(),
+                dpd => dpd.PO,
+                dp => dp.PO,
+                (dpd, dp) => new LegacyData
+                {
+                    Po = dpd.PO,
+                    Co = dpd.CO_Number,
+                    LnNo = dpd.Ln_No.ToString(),
+                    Status = dpd.Status,
+                    UserId = dp.CC_APPROVED, // legacy vendor ID aka CUID
+                    LineNumber = dpd.Ln_No.ToString(),
+                    BatchSeq = dpd.BatchID + "_" + dpd.PrintOrder
+                })
+            .FirstOrDefaultAsync();
+        return current;
     }
 
     private async Task<bool> UpdateMagicDB(List<LegacyData> updateOrders)
