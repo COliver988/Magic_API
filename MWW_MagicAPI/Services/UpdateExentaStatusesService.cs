@@ -158,7 +158,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
                 }
             }
 
-            await _magicContext.SaveChangesAsync();
+            //await _magicContext.SaveChangesAsync();
             await tx.CommitAsync();
             return result;
         }
