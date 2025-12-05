@@ -49,14 +49,14 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         _logger = logger;
     }
 
-    public async Task<bool> UpdateExentaStatuses(int minutes)
+    public async Task<int> UpdateExentaStatuses(int minutes)
     {
         // get all data to update from shopfloor DBs
         List<UpdateData> data = await CollectData(minutes);
         if (data.Count == 0)
         {
             _logger.LogInformation("No Exenta status updates found.");
-            return true;
+            return 0;
         }
         return await UpdateMagic(data);
     }
@@ -67,7 +67,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     /// <param name="data">data to update</param>
     /// <param name="overlap">pos in magic so only update these</param>
     /// <returns></returns>
-    private async Task<bool> UpdateMagic(List<UpdateData> data)
+    public async Task<int> UpdateMagic(List<UpdateData> data)
     {
         List<LegacyData> updateOrders = new(); // status and list of POs to be updated to the new status
         foreach (UpdateData toUpdate in data)
@@ -87,7 +87,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     public async Task<LegacyData?> LoadLegacyData(string po)
     {
         LegacyData? current = await _magicContext.DyePrintDetails.AsNoTracking()
-            .Where(dpd => dpd.PO == po && !excludedStatuses.Contains(dpd.Status))
+            .Where(dpd => dpd.PO == po && !excludedStatuses.Contains(dpd.Status.ToLower()))
             .Join(_magicContext.DapPartners.AsNoTracking(),
                 dpd => dpd.PO,
                 dp => dp.PO,
@@ -105,21 +105,23 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         return current;
     }
 
-    private async Task<bool> UpdateMagicDB(List<LegacyData> updateOrders)
+    public async Task<int> UpdateMagicDB(List<LegacyData> updateOrders)
     {
         if (updateOrders.Count == 0)
         {
             _logger.LogInformation("No Magic DB updates required.");
-            return true;
+            return 0;
         }
-        bool result = await AddUPCLogs(updateOrders);
-        if (result)
+        int result = await AddUPCLogs(updateOrders);
+        if (result > 0)
             result = await UpdateDyePrintDetails(updateOrders);
         return result;
     }
 
-    private async Task<bool> UpdateDyePrintDetails(List<LegacyData> updateOrders)
+    private async Task<int> UpdateDyePrintDetails(List<LegacyData> updateOrders)
     {
+        int result = 0;
+
         // Build a PO -> target status map for fast lookup
         var poToTarget = updateOrders
             .GroupBy(u => u.Po)
@@ -138,7 +140,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
             if (details.Count == 0)
             {
                 await tx.CommitAsync();
-                return true;
+                return result;
             }
 
             // Update each entity's status (and any audit columns if present)
@@ -150,76 +152,88 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
 
                 // Only set when different — avoids unnecessary writes
                 if (!string.Equals(detail.Status, targetStatus, StringComparison.Ordinal))
+                {
                     detail.Status = targetStatus;
+                    result++;
+                }
             }
 
             await _magicContext.SaveChangesAsync();
             await tx.CommitAsync();
-            return true;
+            return result;
         }
         catch (Exception ex)
         {
             await tx.RollbackAsync();
             _logger.LogError($"Error updating DyePrintDetails: {ex.Message}");
-            return false;
+            return -1;
         }
     }
 
     /// <summary>
-    /// add the UPC_LOG_IN records
+    /// add the UPC_LOG_IN records in a single batch
     /// </summary>
     /// <param name="updateData"></param>
     /// <returns></returns>
-    public async Task<bool> AddUPCLogs(List<LegacyData> updateData)
+    public async Task<int> AddUPCLogs(List<LegacyData> updateData)
     {
         try
         {
-            foreach (LegacyData entry in updateData)
+            var batchRecords = updateData.Select(entry => new UPCLogIn
             {
-                _magicContext.UPCLogIns.Add(new UPCLogIn
-                {
-                    CUST_PO_NO = entry.Po,
-                    CO_NUMBER = entry.Po,
-                    CUST_ID = entry.UserId,
-                    USERID = entry.Status,
-                    SHIP_VIA = entry.LineNumber,
-                    CreateDate = DateTime.UtcNow,
-                    LOG_DATE = DateTime.UtcNow.ToString("yyyyMMdd"),
-                    SYSTEM_NAME = "MWWMagicAPI",
-                });
-            }
-            await _magicContext.SaveChangesAsync();
-            return true;
+                CUST_PO_NO = entry.Po,
+                CO_NUMBER = entry.Co,
+                CUST_ID = entry.UserId,
+                USERID = entry.Status,
+                SHIP_VIA = entry.LineNumber,
+                CreateDate = DateTime.UtcNow,
+                LOG_DATE = DateTime.UtcNow.ToString("yyyyMMdd"),
+                SYSTEM_NAME = "MWWMagicAPI",
+            }).ToList();
+
+            _magicContext.UPCLogIns.AddRange(batchRecords);
+
+            //await _magicContext.SaveChangesAsync();
+            return updateData.Count;
         }
         catch (Exception ex)
         {
             _logger.LogError($"Error adding UPC logs: {ex.Message}");
-            return false;
+            return -1;
         }
     }
 
     /// <summary>
-    /// get all the data to update for all DBs
+    /// get all the data to update for all shopfloor DBs
     /// </summary>
-    /// <param name="minutes"></param>
-    /// <returns>distinct PO / serial number data to update</returns>
+    /// <param name="minutes">number of minutes to go back</param>
+    /// <returns>distinct UpdatData records for possible updates</returns>
+    /// <note>duplicates across shopfloor DBs are removed</note>
     public async Task<List<UpdateData>> CollectData(int minutes)
     {
+        var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 5 };
+        var lockObject = new object();
         List<UpdateData> data = new();
-        foreach (string sf in _shopfloors)
+
+        await Parallel.ForEachAsync(_shopfloors, parallelOptions, async (sf, ct) =>
         {
             _logger.LogInformation($"Exenta update status starting for {sf}");
-            data.AddRange(await GetUpdateData(minutes, _contextFactory.GetContext(sf)));
+            var results = await GetUpdateData(minutes, _contextFactory.GetContext(sf));
+            lock (lockObject)
+            {
+                data.AddRange(results);
+            }
             _logger.LogInformation($"Exenta update status ending for {sf}");
-        }
+        });
+
         return data.DistinctBy(x => x.SerialNumber).ToList();
     }
 
     /// <summary>
     /// get the update data for a specific Shopfloor DB instance
     /// </summary>
-    /// <param name="minutes"></param>
-    /// <param name="context"></param>
+    /// <param name="minutes">number of minutes to search back into</param>
+    /// <param name="context">specific shopfloor DB instance</param>
     /// <returns></returns>
     private async Task<List<UpdateData>> GetUpdateData(int minutes, ShopfloorDbContext context)
     {

@@ -21,15 +21,11 @@ public class UpdateExentaStatusesController : Controller
     {
         try
         {
-            bool result = await _updateExentaStatusesService.UpdateExentaStatuses(minutes);
-            if (result)
-            {
-                return Ok(new { Message = "Exenta statuses updated successfully." });
-            }
+            int result = await _updateExentaStatusesService.UpdateExentaStatuses(minutes);
+            if (result >= 0)
+                return Ok(new { Message = $"{result} Exenta statuses updated successfully." });
             else
-            {
                 return StatusCode(500, new { Message = "Failed to update Exenta statuses." });
-            }
         }
         catch (Exception ex)
         {

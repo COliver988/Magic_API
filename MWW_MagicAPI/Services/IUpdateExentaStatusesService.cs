@@ -1,5 +1,5 @@
 namespace MWW_MagicAPI.Services;
 public interface IUpdateExentaStatusesService
 {
-    Task<bool> UpdateExentaStatuses(int minutes);
+    Task<int> UpdateExentaStatuses(int minutes);
 }
