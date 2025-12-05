@@ -58,9 +58,6 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
             _logger.LogInformation("No Exenta status updates found.");
             return true;
         }
-        // get existing magic data
-        //List<LegacyData> legacyData = await GetLegacyData();
-
         return await UpdateMagic(data);
     }
 
@@ -110,10 +107,62 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
 
     private async Task<bool> UpdateMagicDB(List<LegacyData> updateOrders)
     {
+        if (updateOrders.Count == 0)
+        {
+            _logger.LogInformation("No Magic DB updates required.");
+            return true;
+        }
         bool result = await AddUPCLogs(updateOrders);
-        //if (result)
-        //    result = await UpdateDyePrintDetails(updateData);
+        if (result)
+            result = await UpdateDyePrintDetails(updateOrders);
         return result;
+    }
+
+    private async Task<bool> UpdateDyePrintDetails(List<LegacyData> updateOrders)
+    {
+        // Build a PO -> target status map for fast lookup
+        var poToTarget = updateOrders
+            .GroupBy(u => u.Po)
+            .ToDictionary(g => g.Key, g => g.First().Status, StringComparer.OrdinalIgnoreCase);
+
+        // Use transaction to keep updates atomic
+        using var tx = await _magicContext.Database.BeginTransactionAsync();
+        try
+        {
+            // Fetch all matching DyePrintDetails in a single query
+            var pos = poToTarget.Keys.ToList();
+            var details = await _magicContext.DyePrintDetails
+                .Where(d => pos.Contains(d.PO))
+                .ToListAsync();
+
+            if (details.Count == 0)
+            {
+                await tx.CommitAsync();
+                return true;
+            }
+
+            // Update each entity's status (and any audit columns if present)
+            var utcNow = DateTime.UtcNow;
+            foreach (var detail in details)
+            {
+                if (!poToTarget.TryGetValue(detail.PO, out var targetStatus))
+                    continue;
+
+                // Only set when different — avoids unnecessary writes
+                if (!string.Equals(detail.Status, targetStatus, StringComparison.Ordinal))
+                    detail.Status = targetStatus;
+            }
+
+            await _magicContext.SaveChangesAsync();
+            await tx.CommitAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            await tx.RollbackAsync();
+            _logger.LogError($"Error updating DyePrintDetails: {ex.Message}");
+            return false;
+        }
     }
 
     /// <summary>
