@@ -1,12 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MWW_Api.Config;
 using MWW_Api.Models.Magic;
+using MWW_Api.Repositories.Magic;
 
 namespace MWW_MagicAPI.Services;
 
 public class UpdateExentaStatusesService : IUpdateExentaStatusesService
 {
     private readonly IShopfloorDbContextFactory _contextFactory;
+    private readonly IMilestoneMapperRepository _milestoneMapperRepository;
     private readonly MagicDbContext _magicContext;
     private ILogger<UpdateExentaStatusesService> _logger;
     private List<string> _shopfloors  = new List<string>() { "HV", "PD", "TJ", "GM" };
@@ -18,6 +20,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         "ToCut", "toCut", "ToPack", "ToPB", "ToProc", "ToFinishing", 
         "InPB", "ToSew", "InSew", "ToCircleTack", "ToShip", "cancel"
     };
+    private List<MilestoneMapper> _milestoneMappings;
 
     public record UpdateData
     {
@@ -42,15 +45,20 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
 
     public UpdateExentaStatusesService(IShopfloorDbContextFactory contextFactory,
         ILogger<UpdateExentaStatusesService> logger,
+        IMilestoneMapperRepository milestoneMapperRepository,
         MagicDbContext magicContext)
     {
         _contextFactory = contextFactory;
         _magicContext = magicContext;
+        _milestoneMapperRepository = milestoneMapperRepository;
         _logger = logger;
     }
 
     public async Task<int> UpdateExentaStatuses(int minutes)
     {
+        // load the milestones mappings
+        _milestoneMappings = await _milestoneMapperRepository.GetAllMilestoneMappingsAsync();
+
         // get all data to update from shopfloor DBs
         List<UpdateData> data = await CollectData(minutes);
         if (data.Count == 0)
@@ -76,7 +84,11 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
             if (current != null)
             {
                 int currentIdx = Array.FindIndex(_progression, s => string.Equals(s, current.Status, StringComparison.OrdinalIgnoreCase));
-                int newIdx = Array.FindIndex(_progression, s => string.Equals(s, toUpdate.MilestoneName, StringComparison.OrdinalIgnoreCase));
+                string newStatus = _milestoneMappings
+                    .Where(m => string.Equals(m.Milestone, toUpdate.MilestoneName, StringComparison.OrdinalIgnoreCase))
+                    .Select(m => m.NewStatus)
+                    .FirstOrDefault() ?? current.Status;
+                int newIdx = Array.FindIndex(_progression, s => string.Equals(s, newStatus, StringComparison.OrdinalIgnoreCase));
                 if (newIdx > currentIdx)
                     updateOrders.Add(current); 
             }

@@ -1,12 +1,17 @@
-namespace MWW_Api.Repositories.Magic;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using MWW_Api.Config;
+using MWW_Api.Models.Magic;
 
-public class MilestoneMapperRepository : IMilestoneMappingRepository
+
+namespace MWW_Api.Repositories.Magic;
+public class MilestoneMapperRepository : IMilestoneMapperRepository
 {
     private readonly MagicDbContext _context;
     private readonly IMemoryCache _cache;
 
     public MilestoneMapperRepository(MagicDbContext context,
-        ImemoryCache cache)
+        IMemoryCache cache)
     {
         _context = context;
         _cache = cache;
@@ -23,6 +28,6 @@ public class MilestoneMapperRepository : IMilestoneMappingRepository
 
             _cache.Set("MilestoneMappings", cachedMappings, cacheEntryOptions);
         }
-        return await _context.MilestoneMappers.ToListAsync();
+        return cachedMappings;
     }
 }
