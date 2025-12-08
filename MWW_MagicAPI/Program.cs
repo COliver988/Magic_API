@@ -61,8 +61,7 @@ try
     builder.Services.AddScoped<IShopfloorDbContextFactory, ShopfloorDbContextFactory>();
     builder.Services.AddScoped<IFixBatchService, FixBatchService>();
     builder.Services.AddScoped<IUpdateExentaStatusesService, UpdateExentaStatusesService>();
-
-
+    builder.Services.AddMemoryCache();
 
     // Add configuration from appsettings.json or other sources
     builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("AuthSettings"));
