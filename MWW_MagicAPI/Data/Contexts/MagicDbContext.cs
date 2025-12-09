@@ -36,7 +36,7 @@ public class MagicDbContext : DbContext
         modelBuilder.Entity<DyeItemAttributes>().ToTable("dyeitem_Attributes", schema: "dbo").HasNoKey();
         modelBuilder.Entity<DyePrintHeader>().ToTable("dyePrintHeader", schema: "dbo").HasNoKey();
         modelBuilder.Entity<UPCLogIn>().ToTable("UPC_LOG_IN", schema: "dbo");
-        modelBuilder.Entity<MilestoneMapper>().ToTable("milestone_mappers", schema: "dbo");
+        modelBuilder.Entity<MilestoneMapper>().ToTable("milestone_mapper", schema: "dbo");
         modelBuilder.Entity<WebItem>().ToTable("WEB_Items", schema: "dbo").HasNoKey();
     }
 }

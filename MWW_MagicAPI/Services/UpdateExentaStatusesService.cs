@@ -10,6 +10,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     private readonly IShopfloorDbContextFactory _contextFactory;
     private readonly IMilestoneMapperRepository _milestoneMapperRepository;
     private readonly MagicDbContext _magicContext;
+    private readonly IServiceScopeFactory _scopeFactory;
     private ILogger<UpdateExentaStatusesService> _logger;
     private List<string> _shopfloors  = new List<string>() { "HV", "PD", "TJ", "GM" };
     private List<string> excludedStatuses = new List<string>() { "shipped", "cancelled", "cancel", "ready", "pods", "toqc", "stship" };
@@ -46,11 +47,13 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     public UpdateExentaStatusesService(IShopfloorDbContextFactory contextFactory,
         ILogger<UpdateExentaStatusesService> logger,
         IMilestoneMapperRepository milestoneMapperRepository,
+        IServiceScopeFactory serviceScopeFactory,
         MagicDbContext magicContext)
     {
         _contextFactory = contextFactory;
         _magicContext = magicContext;
         _milestoneMapperRepository = milestoneMapperRepository;
+        _scopeFactory = serviceScopeFactory;
         _logger = logger;
     }
 
@@ -77,30 +80,60 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     /// <returns></returns>
     public async Task<int> UpdateMagic(List<UpdateData> data)
     {
-        List<LegacyData> updateOrders = new(); // status and list of POs to be updated to the new status
-        foreach (UpdateData toUpdate in data)
+        List<LegacyData> updateOrders = new(); // will contain legacy rows with Status set to target status
+        var semaphore = new SemaphoreSlim(10); // max concurrency 10
+        var addLock = new object();
+
+        var tasks = data.Select(async toUpdate =>
         {
-            LegacyData? current = await LoadLegacyData(toUpdate.SerialNumber);
-            if (current != null)
+            await semaphore.WaitAsync();
+            try
             {
-                int currentIdx = Array.FindIndex(_progression, s => string.Equals(s, current.Status, StringComparison.OrdinalIgnoreCase));
-                string newStatus = _milestoneMappings
-                    .Where(m => string.Equals(m.Milestone, toUpdate.MilestoneName, StringComparison.OrdinalIgnoreCase))
-                    .Select(m => m.NewStatus)
-                    .FirstOrDefault() ?? current.Status;
-                int newIdx = Array.FindIndex(_progression, s => string.Equals(s, newStatus, StringComparison.OrdinalIgnoreCase));
-                if (newIdx > currentIdx)
-                    updateOrders.Add(current); 
+                LegacyData? current = await LoadLegacyData(toUpdate.SerialNumber);
+                if (current != null)
+                {
+                    int currentIdx = Array.FindIndex(_progression, s => string.Equals(s, current.Status, StringComparison.OrdinalIgnoreCase));
+
+                    string newStatus = _milestoneMappings
+                        .Where(m => string.Equals(m.Milestone, toUpdate.MilestoneName, StringComparison.OrdinalIgnoreCase))
+                        .Select(m => m.NewStatus)
+                        .FirstOrDefault() ?? current.Status;
+
+                    int newIdx = Array.FindIndex(_progression, s => string.Equals(s, newStatus, StringComparison.OrdinalIgnoreCase));
+                    if (newIdx > currentIdx)
+                    {
+                        // set the target status on the legacy record before adding
+                        current.Status = newStatus;
+                        lock (addLock)
+                        {
+                            updateOrders.Add(current);
+                        }
+                    }
+                }
             }
-        }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing update for PO {Po}", toUpdate.SerialNumber);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }).ToList();
+
+        await Task.WhenAll(tasks);
+
         return await UpdateMagicDB(updateOrders);
     }
 
     public async Task<LegacyData?> LoadLegacyData(string po)
     {
-        LegacyData? current = await _magicContext.DyePrintDetails.AsNoTracking()
+        using var scope = _scopeFactory.CreateScope();
+        var magicContext = scope.ServiceProvider.GetRequiredService<MagicDbContext>();
+
+        LegacyData? current = await magicContext.DyePrintDetails.AsNoTracking()
             .Where(dpd => dpd.PO == po && !excludedStatuses.Contains(dpd.Status.ToLower()))
-            .Join(_magicContext.DapPartners.AsNoTracking(),
+            .Join(magicContext.DapPartners.AsNoTracking(),
                 dpd => dpd.PO,
                 dp => dp.PO,
                 (dpd, dp) => new LegacyData
@@ -114,6 +147,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
                     BatchSeq = dpd.BatchID + "_" + dpd.PrintOrder
                 })
             .FirstOrDefaultAsync();
+
         return current;
     }
 
@@ -139,8 +173,6 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
             .GroupBy(u => u.Po)
             .ToDictionary(g => g.Key, g => g.First().Status, StringComparer.OrdinalIgnoreCase);
 
-        // Use transaction to keep updates atomic
-        using var tx = await _magicContext.Database.BeginTransactionAsync();
         try
         {
             // Fetch all matching DyePrintDetails in a single query
@@ -150,10 +182,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
                 .ToListAsync();
 
             if (details.Count == 0)
-            {
-                await tx.CommitAsync();
                 return result;
-            }
 
             // Update each entity's status (and any audit columns if present)
             var utcNow = DateTime.UtcNow;
@@ -171,12 +200,10 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
             }
 
             //await _magicContext.SaveChangesAsync();
-            await tx.CommitAsync();
             return result;
         }
         catch (Exception ex)
         {
-            await tx.RollbackAsync();
             _logger.LogError($"Error updating DyePrintDetails: {ex.Message}");
             return -1;
         }
@@ -205,6 +232,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
 
             _magicContext.UPCLogIns.AddRange(batchRecords);
 
+            // we'll save all transactions at once later
             //await _magicContext.SaveChangesAsync();
             return updateData.Count;
         }
