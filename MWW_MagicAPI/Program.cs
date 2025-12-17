@@ -45,6 +45,7 @@ try
     builder.Services.AddScoped<IMWW_ApplicationRepository, MWW_ApplicationRepository>();
     builder.Services.AddScoped<IUndefinedProductsRepository, UndefinedProductsRepository>();
     builder.Services.AddScoped<IWebItemRepository, WebItemRepository>();
+    builder.Services.AddScoped<IMilestoneMapperRepository, MilestoneMapperRepository>();
 
     // db context
     builder.Services.AddDbContext<MagicDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Magic")));
@@ -60,8 +61,8 @@ try
     // factories and services
     builder.Services.AddScoped<IShopfloorDbContextFactory, ShopfloorDbContextFactory>();
     builder.Services.AddScoped<IFixBatchService, FixBatchService>();
-
-
+    builder.Services.AddScoped<IUpdateExentaStatusesService, UpdateExentaStatusesService>();
+    builder.Services.AddMemoryCache();
 
     // Add configuration from appsettings.json or other sources
     builder.Services.Configure<AuthSettings>(builder.Configuration.GetSection("AuthSettings"));
@@ -147,7 +148,7 @@ try
     Log.Information(builder.Configuration.GetConnectionString("Database:Serilog"));
     Log.Information(builder.Configuration.GetConnectionString("Database:Magic"));
     Log.Information(builder.Configuration.GetConnectionString("Database:Exenta"));
-    Log.Information(builder.Configuration.GetConnectionString("Database:ShopfloorPD"));
+    Log.Information(builder.Configuration.GetConnectionString("Database:ShopfloorHV"));
 
     app.Run();
 }

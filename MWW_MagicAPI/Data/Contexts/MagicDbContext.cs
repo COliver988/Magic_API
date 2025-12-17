@@ -17,7 +17,9 @@ public class MagicDbContext : DbContext
     public DbSet<ExentaPOLinesWithAckNo> ExentaPOLinesWithAckNos { get; set; }
     public DbSet<DyeItemAttributes> DyeItemAttributes { get; set; }
     public DbSet<DyePrintHeader> DyePrintHeaders { get; set; }
+    public DbSet<UPCLogIn> UPCLogIns { get; set; }
     public DbSet<WebItem> WebItems { get; set; }
+    public DbSet<MilestoneMapper> MilestoneMappers { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -33,6 +35,8 @@ public class MagicDbContext : DbContext
         modelBuilder.Entity<ExentaPOLinesWithAckNo>().ToTable("Exenta_PO_Lines_with_AckNo", schema: "dbo").HasNoKey();
         modelBuilder.Entity<DyeItemAttributes>().ToTable("dyeitem_Attributes", schema: "dbo").HasNoKey();
         modelBuilder.Entity<DyePrintHeader>().ToTable("dyePrintHeader", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<UPCLogIn>().ToTable("UPC_LOG_IN", schema: "dbo");
+        modelBuilder.Entity<MilestoneMapper>().ToTable("milestone_mapper", schema: "dbo");
         modelBuilder.Entity<WebItem>().ToTable("WEB_Items", schema: "dbo").HasNoKey();
     }
 }
