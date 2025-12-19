@@ -6,7 +6,7 @@ using MWW_Api.Repositories.Magic;
 namespace MWW_MagicAPI.Controllers;
 
 [Route("api/[controller]")]
-//[Authorize]
+[Authorize]
 [ApiController]
 public class MilestoneMapperController : Controller
 {
