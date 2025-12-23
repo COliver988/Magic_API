@@ -1,18 +1,16 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MWW_Api.Config;
 using MWW_Api.Models.Magic;
-using MWW_Api.Repositories.Magic;
+using MWW_MagicAPI.Data.Models.DTO;
 
-namespace MWW_MagicAPI.Services;
+namespace MWW_MagicAPI.Services.SyncServices;
 
-public class UpdateExentaStatusesService : IUpdateExentaStatusesService
+public class MagicSyncService : ISyncService
 {
-    private readonly IShopfloorDbContextFactory _contextFactory;
-    private readonly IMilestoneMapperRepository _milestoneMapperRepository;
-    private readonly MagicDbContext _magicContext;
-    private readonly IServiceScopeFactory _scopeFactory;
-    private ILogger<UpdateExentaStatusesService> _logger;
-    private List<string> _shopfloors  = new List<string>() { "HV", "PD", "TJ", "GM" };
+    private IServiceScopeFactory _scopeFactory;
+    private ILogger<IUpdateExentaStatusesService> _logger;
+    private MagicDbContext _magicContext;
+    private List<MilestoneMapper> _mappings;
     private List<string> excludedStatuses = new List<string>() { "shipped", "cancelled", "cancel", "ready", "pods", "toqc", "stship" };
     string[] _progression = new string[]
     {
@@ -21,67 +19,24 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         "ToCut", "toCut", "ToPack", "ToPB", "ToProc", "ToFinishing", 
         "InPB", "ToSew", "InSew", "ToCircleTack", "ToShip", "cancel"
     };
-    private List<MilestoneMapper> _milestoneMappings;
 
-    public record UpdateData
+    public async Task<int> SyncData(List<UpdateData> data, 
+        List<MilestoneMapper> mappings,
+        IServiceScopeFactory scopeFactory,
+        ILogger<IUpdateExentaStatusesService> logger)
     {
-        public string AlphaNumId { get; set; }
-        public string MilestoneName { get; set; }
-        public long OperationId { get; set; }
-        public long ProductId { get; set; }
-        public string SerialNumber { get; set; }
-        public DateTime Created { get; set; }
-    }
-
-    public record LegacyData
-    {
-        public string Po { get; set; }
-        public string Co { get; set; }
-        public string LnNo { get; set; }
-        public string Status { get; set; }
-        public string BatchSeq { get; set; }
-        public string UserId { get; set; }
-        public string LineNumber { get; set; }
-    }
-
-    public UpdateExentaStatusesService(IShopfloorDbContextFactory contextFactory,
-        ILogger<UpdateExentaStatusesService> logger,
-        IMilestoneMapperRepository milestoneMapperRepository,
-        IServiceScopeFactory serviceScopeFactory,
-        MagicDbContext magicContext)
-    {
-        _contextFactory = contextFactory;
-        _magicContext = magicContext;
-        _milestoneMapperRepository = milestoneMapperRepository;
-        _scopeFactory = serviceScopeFactory;
+        _scopeFactory = scopeFactory;
         _logger = logger;
+        _mappings = mappings;
+        using var scope = _scopeFactory.CreateScope();
+        _magicContext = scope.ServiceProvider.GetRequiredService<MagicDbContext>();
+        return await UpdateMagicStatuses(data);
     }
 
-    public async Task<int> UpdateExentaStatuses(int minutes)
-    {
-        // load the milestones mappings
-        _milestoneMappings = await _milestoneMapperRepository.GetAllMilestoneMappingsAsync();
-
-        // get all data to update from shopfloor DBs
-        List<UpdateData> data = await CollectData(minutes);
-        if (data.Count == 0)
-        {
-            _logger.LogInformation("No Exenta status updates found.");
-            return 0;
-        }
-        return await UpdateMagic(data);
-    }
-
-    /// <summary>
-    /// update the magic DB with the new status
-    /// </summary>
-    /// <param name="data">data to update</param>
-    /// <param name="overlap">pos in magic so only update these</param>
-    /// <returns></returns>
-    public async Task<int> UpdateMagic(List<UpdateData> data)
-    {
+    public async Task<int> UpdateMagicStatuses(List<UpdateData> data)
+    { 
         List<LegacyData> updateOrders = new(); // will contain legacy rows with Status set to target status
-        var semaphore = new SemaphoreSlim(10); // max concurrency 10
+        var semaphore = new SemaphoreSlim(5); // max concurrency 5
         var addLock = new object();
 
         var tasks = data.Select(async toUpdate =>
@@ -94,7 +49,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
                 {
                     int currentIdx = Array.FindIndex(_progression, s => string.Equals(s, current.Status, StringComparison.OrdinalIgnoreCase));
 
-                    string newStatus = _milestoneMappings
+                    string newStatus = _mappings
                         .Where(m => string.Equals(m.Milestone, toUpdate.MilestoneName, StringComparison.OrdinalIgnoreCase))
                         .Select(m => m.NewStatus)
                         .FirstOrDefault() ?? current.Status;
@@ -128,12 +83,10 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
 
     public async Task<LegacyData?> LoadLegacyData(string po)
     {
-        using var scope = _scopeFactory.CreateScope();
-        var magicContext = scope.ServiceProvider.GetRequiredService<MagicDbContext>();
 
-        LegacyData? current = await magicContext.DyePrintDetails.AsNoTracking()
+        LegacyData? current = await _magicContext.DyePrintDetails.AsNoTracking()
             .Where(dpd => dpd.PO == po && !excludedStatuses.Contains(dpd.Status.ToLower()))
-            .Join(magicContext.DapPartners.AsNoTracking(),
+            .Join(_magicContext.DapPartners.AsNoTracking(),
                 dpd => dpd.PO,
                 dp => dp.PO,
                 (dpd, dp) => new LegacyData
@@ -243,75 +196,4 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         }
     }
 
-    /// <summary>
-    /// get all the data to update for all shopfloor DBs
-    /// </summary>
-    /// <param name="minutes">number of minutes to go back</param>
-    /// <returns>distinct UpdatData records for possible updates</returns>
-    /// <note>duplicates across shopfloor DBs are removed</note>
-    public async Task<List<UpdateData>> CollectData(int minutes)
-    {
-        var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 5 };
-        var lockObject = new object();
-        List<UpdateData> data = new();
-
-        await Parallel.ForEachAsync(_shopfloors, parallelOptions, async (sf, ct) =>
-        {
-            _logger.LogInformation($"Exenta update status starting for {sf}");
-            var results = await GetUpdateData(minutes, _contextFactory.GetContext(sf));
-            lock (lockObject)
-            {
-                data.AddRange(results);
-            }
-            _logger.LogInformation($"Exenta update status ending for {sf}");
-        });
-
-        return data.DistinctBy(x => x.SerialNumber).ToList();
-    }
-
-    /// <summary>
-    /// get the update data for a specific Shopfloor DB instance
-    /// </summary>
-    /// <param name="minutes">number of minutes to search back into</param>
-    /// <param name="context">specific shopfloor DB instance</param>
-    /// <returns></returns>
-    private async Task<List<UpdateData>> GetUpdateData(int minutes, ShopfloorDbContext context)
-    {
-        // Calculate cutoff time (equivalent to DATEADD(minute, -args.time, GETUTCDATE()))
-        DateTime cutoff = DateTime.UtcNow.AddMinutes(-minutes);
-
-        var query =
-            from m in context.MileStones.AsNoTracking()
-            where m.Name != "READY"
-            join po in context.ProductOperations.AsNoTracking()
-                on m.Id equals po.MileStoneId
-            join wo in context.WorkOrders.AsNoTracking()
-                on po.ProductId equals wo.ProductId
-            join t in context.Transactions.AsNoTracking()
-                on new { wo.Id, po.OperationId } equals new { Id = t.WorkorderId, t.OperationId }
-            where t.DateTime >= cutoff
-            join u in context.Units.AsNoTracking()
-                on t.UnitId equals u.Id
-            orderby t.Created descending
-            select new UpdateData
-            {
-                AlphaNumId = u.AlphaNumId,
-                MilestoneName = m.Name,
-                OperationId = po.OperationId,
-                ProductId = po.ProductId,
-                SerialNumber = wo.Serialnumber,
-                Created = t.Created
-            };
-
-        try
-        {
-            List<UpdateData> results = await query.Distinct().ToListAsync();
-            return results;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"Error retrieving update data: {ex.Message}");
-            return new List<UpdateData>();
-        }   
-    }
 }

@@ -8,6 +8,7 @@ using MWW_Api.Repositories.Exenta;
 using MWW_Api.Repositories.Magic;
 using MWW_MagicAPI.Data.Models;
 using MWW_MagicAPI.Services;
+using MWW_MagicAPI.Services.SyncServices;
 using Prometheus;
 using Serilog;
 using System.Text;
@@ -62,6 +63,7 @@ try
     builder.Services.AddScoped<IShopfloorDbContextFactory, ShopfloorDbContextFactory>();
     builder.Services.AddScoped<IFixBatchService, FixBatchService>();
     builder.Services.AddScoped<IUpdateExentaStatusesService, UpdateExentaStatusesService>();
+    builder.Services.AddScoped<ISyncService, MagicSyncService>();
     builder.Services.AddMemoryCache();
 
     // Add configuration from appsettings.json or other sources
