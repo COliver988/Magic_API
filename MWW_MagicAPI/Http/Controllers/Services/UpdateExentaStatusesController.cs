@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MWW_MagicAPI.Services;
+using MWW_MagicAPI.Services.SyncServices;
 
 namespace MWW_MagicAPI.Http.Controllers.Services;
 
