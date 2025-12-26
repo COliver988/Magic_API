@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MWW_Api.Models.Magic;
@@ -16,5 +15,9 @@ public class MilestoneMapper
  
     [Column("fs_status")]
 	public string? FS_Status {get;set;}
+
+
+    [Column("printify_status")]
+    public string PrintifyStatus { get; set; } 
 
 }
