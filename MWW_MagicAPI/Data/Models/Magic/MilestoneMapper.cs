@@ -18,6 +18,6 @@ public class MilestoneMapper
 
 
     [Column("printify_status")]
-    public string PrintifyStatus { get; set; } 
+    public string? PrintifyStatus { get; set; } 
 
 }
