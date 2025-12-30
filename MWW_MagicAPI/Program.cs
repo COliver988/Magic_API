@@ -82,6 +82,10 @@ try
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:Magic")),
            HealthStatus.Unhealthy,
            new string[] { "Magic DB", "Database" })
+        .AddCheck("Peeps DB",
+            new PostgresDbHealthCheck(builder.Configuration.GetConnectionString("Database:Peeps")),
+            HealthStatus.Unhealthy,
+            new string[] { "Peeps DB", "Database" })
        .AddCheck("Shopfloor Hendersonville DB",
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:ShopfloorHV")),
            HealthStatus.Degraded,
