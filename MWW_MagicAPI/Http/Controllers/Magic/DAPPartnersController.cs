@@ -30,8 +30,9 @@ public class DAPPartnersController : ControllerBase
         return await _dapPartnersRepository.GetByTKRef1(tkref1);
     }
 
+    // note: po may be a list of POs
     [HttpGet("MoveOrder")]
-    public async Task<DapPartner?> MoveOrder(string po, string location)
+    public async Task<List<string>> MoveOrder(string po, string location)
     {
         return await _dapPartnersRepository.MoveOrderAsync(po, location);
     }
