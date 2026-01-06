@@ -47,6 +47,7 @@ try
     builder.Services.AddScoped<IUndefinedProductsRepository, UndefinedProductsRepository>();
     builder.Services.AddScoped<IWebItemRepository, WebItemRepository>();
     builder.Services.AddScoped<IMilestoneMapperRepository, MilestoneMapperRepository>();
+    builder.Services.AddScoped<ISFCTimestampRepository, SFCTimestampRepository>();
 
     // db context
     builder.Services.AddDbContext<MagicDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Magic")));

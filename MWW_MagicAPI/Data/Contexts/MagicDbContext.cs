@@ -20,6 +20,7 @@ public class MagicDbContext : DbContext
     public DbSet<UPCLogIn> UPCLogIns { get; set; }
     public DbSet<WebItem> WebItems { get; set; }
     public DbSet<MilestoneMapper> MilestoneMappers { get; set; }
+    public DbSet<SFCTimestamp> SFCTimestamps { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -38,5 +39,6 @@ public class MagicDbContext : DbContext
         modelBuilder.Entity<UPCLogIn>().ToTable("UPC_LOG_IN", schema: "dbo");
         modelBuilder.Entity<MilestoneMapper>().ToTable("milestone_mapper", schema: "dbo");
         modelBuilder.Entity<WebItem>().ToTable("WEB_Items", schema: "dbo").HasNoKey();
+        modelBuilder.Entity<SFCTimestamp>().ToTable("SFCTimestamps", schema: "dbo");
     }
 }

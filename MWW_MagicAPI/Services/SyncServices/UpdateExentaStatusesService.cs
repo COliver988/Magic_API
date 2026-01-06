@@ -3,6 +3,7 @@ using MWW_Api.Config;
 using MWW_Api.Models.Magic;
 using MWW_Api.Repositories.Magic;
 using MWW_MagicAPI.Data.Models.DTO;
+using System.Threading.Tasks;
 
 namespace MWW_MagicAPI.Services.SyncServices;
 
@@ -10,20 +11,24 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
 {
     private readonly IShopfloorDbContextFactory _contextFactory;
     private readonly IMilestoneMapperRepository _milestoneMapperRepository;
+    private readonly ISFCTimestampRepository _sfcTimestampRepository;
     private readonly IServiceScopeFactory _scopeFactory;
     private ILogger<UpdateExentaStatusesService> _logger;
     private List<string> _shopfloors  = new List<string>() { "HV", "PD", "TJ", "GM" };
     private List<MilestoneMapper> _milestoneMappings;
+    private List<SFCTimestamp> _sfcTimestamps;
     private readonly IEnumerable<ISyncService> _workers;
 
     public UpdateExentaStatusesService(IShopfloorDbContextFactory contextFactory,
         ILogger<UpdateExentaStatusesService> logger,
         IMilestoneMapperRepository milestoneMapperRepository,
+        ISFCTimestampRepository sfcRepo,
         IServiceScopeFactory serviceScopeFactory,
         IEnumerable<ISyncService> workers)
     {
         _contextFactory = contextFactory;
         _milestoneMapperRepository = milestoneMapperRepository;
+        _sfcTimestampRepository = sfcRepo;
         _scopeFactory = serviceScopeFactory;
         _logger = logger;
         _workers = workers ?? Enumerable.Empty<ISyncService>();
@@ -34,6 +39,9 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     {
         // load the milestones mappings
         _milestoneMappings = await _milestoneMapperRepository.GetAllMilestoneMappingsAsync();
+
+        // load SFC timestamps
+        _sfcTimestamps = await _sfcTimestampRepository.GetAllAsync();
 
         // get all data to update from shopfloor DBs
         List<UpdateData> data = await CollectData(minutes);
@@ -53,7 +61,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     /// <summary>
     /// get all the data to update for all shopfloor DBs
     /// </summary>
-    /// <param name="minutes">number of minutes to go back</param>
+    /// <param name="minutes">number of minutes to go back if no timestamp record</param>
     /// <returns>distinct UpdatData records for possible updates</returns>
     /// <note>duplicates across shopfloor DBs are removed</note>
     public async Task<List<UpdateData>> CollectData(int minutes)
@@ -65,7 +73,9 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         await Parallel.ForEachAsync(_shopfloors, parallelOptions, async (sf, ct) =>
         {
             _logger.LogInformation($"Exenta update status starting for {sf}");
-            var results = await GetUpdateData(minutes, _contextFactory.GetContext(sf));
+            var results = await GetUpdateData(minutes, sf);
+            if (results.Count > 0)
+                await UpdateSFCTimestamp(sf, results.Max(r => r.Created));
             lock (lockObject)
             {
                 data.AddRange(results);
@@ -79,13 +89,13 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     /// <summary>
     /// get the update data for a specific Shopfloor DB instance
     /// </summary>
-    /// <param name="minutes">number of minutes to search back into</param>
+    /// <param name="minutes">number of minutes to search back into if no timestamp record</param>
     /// <param name="context">specific shopfloor DB instance</param>
     /// <returns></returns>
-    private async Task<List<UpdateData>> GetUpdateData(int minutes, ShopfloorDbContext context)
+    private async Task<List<UpdateData>> GetUpdateData(int minutes, string shopfloorCode)
     {
-        // Calculate cutoff time (equivalent to DATEADD(minute, -args.time, GETUTCDATE()))
-        DateTime cutoff = DateTime.UtcNow.AddMinutes(-minutes);
+        ShopfloorDbContext context = _contextFactory.GetContext(shopfloorCode);
+        DateTime cutoff = GetLastCheckedUtc(minutes, shopfloorCode);
 
         var query =
             from m in context.MileStones.AsNoTracking()
@@ -120,5 +130,30 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
             _logger.LogError($"Error retrieving update data: {ex.Message}");
             return new List<UpdateData>();
         }   
+    }
+
+    private DateTime GetLastCheckedUtc(int minutes, string shopfloorCode)
+    {
+        SFCTimestamp? timestamp = _sfcTimestamps.FirstOrDefault(s => s.Location == shopfloorCode);
+        return timestamp?.LastChecked ?? DateTime.UtcNow.AddMinutes(-minutes);
+    }
+
+    private async Task UpdateSFCTimestamp(string shopfloorCode, DateTime lastCheck)
+    {
+        SFCTimestamp? timestamp = _sfcTimestamps.FirstOrDefault(s => s.Location == shopfloorCode);
+        if (timestamp != null)
+        {
+            timestamp.LastChecked = lastCheck;
+            await _sfcTimestampRepository.UpdateAsync(timestamp);
+        }
+        else
+        {
+            SFCTimestamp newTimestamp = new SFCTimestamp
+            {
+                Location = shopfloorCode,
+                LastChecked = lastCheck
+            };
+            await _sfcTimestampRepository.UpdateAsync(newTimestamp);
+        }
     }
 }
