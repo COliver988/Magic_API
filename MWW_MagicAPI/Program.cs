@@ -52,7 +52,8 @@ try
     builder.Services.AddScoped<ISFCTimestampRepository, SFCTimestampRepository>();
 
     // Peeps
-    builder.Services.AddScoped<IPrintifyOrderRepository, PrintifyOrderRepository>();
+    builder.Services.AddHttpClient<IPrintifyOrderRepository, PrintifyOrderRepository>();
+
 
     // db context
     builder.Services.AddDbContext<MagicDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Magic")));

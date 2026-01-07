@@ -8,8 +8,8 @@ namespace MWW_MagicAPI.Data.Repository.Peeps.Printify;
 public class PrintifyOrderRepository : IPrintifyOrderRepository
 {
     private readonly PeepsDbContext _context;
-    private HttpClient _httpClient;
-    private ILogger<PrintifyOrderRepository>? _logger;
+    private readonly HttpClient _httpClient;
+    private readonly ILogger<PrintifyOrderRepository> _logger;
 
     public PrintifyOrderRepository(PeepsDbContext context, HttpClient httpClient, ILogger<PrintifyOrderRepository>? logger)
     {
