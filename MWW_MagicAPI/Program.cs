@@ -7,6 +7,8 @@ using MWW_Api.Http.Middleware.Health;
 using MWW_Api.Repositories.Exenta;
 using MWW_Api.Repositories.Magic;
 using MWW_MagicAPI.Data.Models;
+using MWW_MagicAPI.Data.Repository.Peeps.Printify;
+using MWW_MagicAPI.Data.RepositoryContracts.Peeps.Printify;
 using MWW_MagicAPI.Services;
 using MWW_MagicAPI.Services.SyncServices;
 using Prometheus;
@@ -48,6 +50,9 @@ try
     builder.Services.AddScoped<IWebItemRepository, WebItemRepository>();
     builder.Services.AddScoped<IMilestoneMapperRepository, MilestoneMapperRepository>();
     builder.Services.AddScoped<ISFCTimestampRepository, SFCTimestampRepository>();
+
+    // Peeps
+    builder.Services.AddScoped<IPrintifyOrderRepository, PrintifyOrderRepository>();
 
     // db context
     builder.Services.AddDbContext<MagicDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Magic")));
