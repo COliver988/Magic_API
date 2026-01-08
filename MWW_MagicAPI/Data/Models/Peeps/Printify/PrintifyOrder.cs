@@ -35,4 +35,6 @@ public class PrintifyOrder
 
     [Column("tags", TypeName = "jsonb")]
     public string? Tags { get; set; }
+
+    public List<PrintifyItem> PrintifyItems { get; set; } = new();
 }

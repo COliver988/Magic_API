@@ -9,12 +9,16 @@ public class PrintifyEvent
     public long Id { get; set; }
 
     [Column("order_id")]
-    public Int64 OrderId { get; set; }
+    public long OrderId { get; set; }
 
     [Column("action")]
     public string? Action { get; set; }
 
+    [Column("affected_items", TypeName = "varchar[]")]
+    public string[]? AffectedItems { get; set; }
+
     [Column("created_at")]
+
     public DateTime CreatedAt { get; set; }
 
     [Column("updated_at")]

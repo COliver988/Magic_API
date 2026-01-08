@@ -52,7 +52,8 @@ try
     builder.Services.AddScoped<ISFCTimestampRepository, SFCTimestampRepository>();
 
     // Peeps
-    builder.Services.AddHttpClient<IPrintifyOrderRepository, PrintifyOrderRepository>();
+    builder.Services.AddScoped<IPrintifyOrderRepository, PrintifyOrderRepository>();
+    builder.Services.AddScoped<IPrintifyEventRepository, PrintifyEventRepository>();
 
 
     // db context
@@ -71,6 +72,7 @@ try
     builder.Services.AddScoped<IFixBatchService, FixBatchService>();
     builder.Services.AddScoped<IUpdateExentaStatusesService, UpdateExentaStatusesService>();
     builder.Services.AddScoped<ISyncService, MagicSyncService>();
+    builder.Services.AddHttpClient<ISyncService, PrintifySyncService>();
     builder.Services.AddMemoryCache();
 
     // Add configuration from appsettings.json or other sources

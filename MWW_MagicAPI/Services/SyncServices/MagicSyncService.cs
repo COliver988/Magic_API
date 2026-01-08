@@ -7,7 +7,6 @@ namespace MWW_MagicAPI.Services.SyncServices;
 
 public class MagicSyncService : ISyncService
 {
-    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<MagicSyncService> _logger;
     private MagicDbContext _magicContext;
     private List<MilestoneMapper> _mappings;
@@ -21,10 +20,10 @@ public class MagicSyncService : ISyncService
     };
 
     public MagicSyncService(
-        IServiceScopeFactory scopeFactory,
+        MagicDbContext magicContext,
         ILogger<MagicSyncService> logger)
     {
-        _scopeFactory = scopeFactory;
+        _magicContext = magicContext;
         _logger = logger;
     }
 
@@ -32,8 +31,6 @@ public class MagicSyncService : ISyncService
         List<MilestoneMapper> mappings)
     {
         _mappings = mappings;
-        using var scope = _scopeFactory.CreateScope();
-        _magicContext = scope.ServiceProvider.GetRequiredService<MagicDbContext>();
         return await UpdateMagicStatuses(data);
     }
 

@@ -8,29 +8,37 @@ namespace MWW_MagicAPI.Data.Repository.Peeps.Printify;
 public class PrintifyOrderRepository : IPrintifyOrderRepository
 {
     private readonly PeepsDbContext _context;
-    private readonly HttpClient _httpClient;
     private readonly ILogger<PrintifyOrderRepository> _logger;
 
-    public PrintifyOrderRepository(PeepsDbContext context, HttpClient httpClient, ILogger<PrintifyOrderRepository>? logger)
+    public PrintifyOrderRepository(PeepsDbContext context, ILogger<PrintifyOrderRepository>? logger)
     {
         _context = context;
-        _httpClient = httpClient;
         _logger = logger;
     }
 
-    public async Task<PrintifyOrder?> GetByOrderPOAsync(string po) => await _context.PrintifyOrders.AsNoTracking().FirstOrDefaultAsync(o => o.UniqueId == po);
+    public async Task<PrintifyOrder?> GetByOrderPOAsync(string po) =>
+        await _context.PrintifyOrders
+            .AsNoTracking()
+            .Include(o => o.PrintifyItems)
+            .FirstOrDefaultAsync(o => o.UniqueId == po);
 
     /// <summary>
-    /// update the order; will do any missing states in case we got them skipped
+    /// update the order and its items
     /// </summary>
     /// <param name="order"></param>
     /// <param name="newStatus"></param>
-    /// <returns></returns>
+    /// <returns>true if success else false</returns>
     public async Task<bool> UpdateAsync(string po, string newStatus)
     {
         // get it into tracked state
         PrintifyOrder? order = await _context.PrintifyOrders.FirstOrDefaultAsync(o => o.UniqueId == po);
         if (order == null || order.Status == newStatus) return false;
+
+        order.Status = newStatus;
+        List<PrintifyItem> printifyItems = await _context.PrintifyItems.Where(i => i.OrderId == order.Id).ToListAsync();
+        foreach (var item in printifyItems)
+            item.Status = newStatus;
+        await _context.SaveChangesAsync();
 
         return true;
     }

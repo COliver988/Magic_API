@@ -11,4 +11,5 @@ public class PeepsDbContext : DbContext
 
     public DbSet<PrintifyOrder> PrintifyOrders { get; set; }
     public DbSet<PrintifyEvent> PrintifyEvents { get; set; }
+    public DbSet<PrintifyItem> PrintifyItems { get; set; }
 }
