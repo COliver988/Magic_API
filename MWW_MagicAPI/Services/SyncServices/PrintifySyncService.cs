@@ -52,14 +52,13 @@ public class PrintifySyncService : ISyncService
     {
         int updated = 0;
 
-        foreach (var update in updates)
+        foreach (UpdateData update in updates)
         {
-            var mapped = mappings.FirstOrDefault(m =>
+            MilestoneMapper? mapped = mappings.FirstOrDefault(m =>
                 m.NewStatus == update.MilestoneName &&
                 !string.IsNullOrEmpty(m.PrintifyStatus));
 
-            if (mapped == null)
-                continue;
+            if (mapped == null) continue;
 
             if (await ProcessUpdate(update.SerialNumber, mapped.PrintifyStatus!))
                 updated++;
@@ -137,7 +136,7 @@ public class PrintifySyncService : ISyncService
     {
         List<PrintifyEvent> events = new List<PrintifyEvent>();
         Array statuses = Enum.GetValues(typeof(PrintifyStatuses));
-        int targetIndex = Array.IndexOf(statuses, Enum.Parse(typeof(PrintifyStatuses), status));
+        int targetIndex = FindTargetIndex(statuses, status);
         for (int i = 0; i <= targetIndex; i++)
         {
             string currentStatus = statuses.GetValue(i)!.ToString()!;
@@ -151,5 +150,18 @@ public class PrintifySyncService : ISyncService
             });
         }
         return events;
+    }
+
+    /// <summary>
+    /// find the position for this enum value
+    /// </summary>
+    /// <param name="statuses"></param>
+    /// <param name="status"></param>
+    /// <returns>index of enum else -1 if invalid</returns>
+    private int FindTargetIndex(Array statuses, string status)
+    {
+       	if (!Enum.TryParse<PrintifyStatuses>(status, true, out var parsed)) return -1;
+        int targetIndex = Array.IndexOf(statuses, Enum.Parse(typeof(PrintifyStatuses), status));
+        return targetIndex;
     }
 }

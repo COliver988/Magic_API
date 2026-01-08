@@ -6,6 +6,7 @@ using MWW_Api.Config;
 using MWW_Api.Http.Middleware.Health;
 using MWW_Api.Repositories.Exenta;
 using MWW_Api.Repositories.Magic;
+using MWW_MagicAPI.Data.Contexts;
 using MWW_MagicAPI.Data.Models;
 using MWW_MagicAPI.Data.Repository.Peeps.Printify;
 using MWW_MagicAPI.Data.RepositoryContracts.Peeps.Printify;
@@ -60,6 +61,7 @@ try
     builder.Services.AddDbContext<MagicDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Magic")));
     builder.Services.AddDbContext<ExentaDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Exenta")));
     builder.Services.AddDbContext<SerilogDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Database:Serilog")));
+    builder.Services.AddDbContext<PeepsDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Database:Peeps")));
     
     // Shopfloor
     builder.Services.AddDbContext<ShopfloorHVDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:ShopfloorHV")));
