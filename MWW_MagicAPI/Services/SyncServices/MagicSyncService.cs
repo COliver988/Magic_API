@@ -7,8 +7,8 @@ namespace MWW_MagicAPI.Services.SyncServices;
 
 public class MagicSyncService : ISyncService
 {
-    private IServiceScopeFactory _scopeFactory;
-    private ILogger<IUpdateExentaStatusesService> _logger;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<MagicSyncService> _logger;
     private MagicDbContext _magicContext;
     private List<MilestoneMapper> _mappings;
     private List<string> excludedStatuses = new List<string>() { "shipped", "cancelled", "cancel", "ready", "pods", "toqc", "stship" };
@@ -20,13 +20,17 @@ public class MagicSyncService : ISyncService
         "InPB", "ToSew", "InSew", "ToCircleTack", "ToShip", "cancel"
     };
 
-    public async Task<int> SyncData(List<UpdateData> data, 
-        List<MilestoneMapper> mappings,
+    public MagicSyncService(
         IServiceScopeFactory scopeFactory,
-        ILogger<IUpdateExentaStatusesService> logger)
+        ILogger<MagicSyncService> logger)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+    }
+
+    public async Task<int> SyncData(List<UpdateData> data, 
+        List<MilestoneMapper> mappings)
+    {
         _mappings = mappings;
         using var scope = _scopeFactory.CreateScope();
         _magicContext = scope.ServiceProvider.GetRequiredService<MagicDbContext>();
