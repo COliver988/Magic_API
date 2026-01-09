@@ -45,7 +45,23 @@ public class PrintifySyncService : ISyncService
         if (data == null || data.Count == 0)
             return 0;
 
+        // remove any non-Printify POs
+        data = await FilterPrintifyOrders(data);
         return await UpdatePrintifyStatuses(data, milestoneMappings);
+    }
+
+    private async Task<List<UpdateData>> FilterPrintifyOrders(List<UpdateData> data)
+    {
+        List<UpdateData> printifyOrders = new List<UpdateData>();
+        foreach (var update in data)
+        {
+            PrintifyOrder? order = await _orderRepository.GetByOrderPOAsync(update.SerialNumber);
+            if (order != null)
+            {
+                printifyOrders.Add(update);
+            }
+        }
+        return printifyOrders;
     }
 
     private async Task<int> UpdatePrintifyStatuses(
@@ -57,7 +73,7 @@ public class PrintifySyncService : ISyncService
         foreach (UpdateData update in updates)
         {
             MilestoneMapper? mapped = mappings.FirstOrDefault(m =>
-                m.NewStatus == update.MilestoneName &&
+                string.Equals(m.Milestone, update.MilestoneName, StringComparison.OrdinalIgnoreCase) &&
                 !string.IsNullOrEmpty(m.PrintifyStatus));
 
             if (mapped == null) continue;
