@@ -8,6 +8,7 @@ using MWW_MagicAPI.Services.SyncServices;
 public class PrintifySyncService : ISyncService
 {
     private readonly PeepsDbContext _context;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
     private readonly IPrintifyOrderRepository _orderRepository;
     private readonly IPrintifyEventRepository _eventRepository;
     private readonly ILogger<PrintifySyncService> _logger;
@@ -23,15 +24,15 @@ public class PrintifySyncService : ISyncService
     }
 
     public PrintifySyncService(
-        PeepsDbContext context,
-        IPrintifyOrderRepository orderRepository,
-        IPrintifyEventRepository eventRepository,
+        IServiceScopeFactory serviceScopeFactory,
         HttpClient httpClient,
         ILogger<PrintifySyncService> logger)
     {
-        _context = context;
-        _orderRepository = orderRepository;
-        _eventRepository = eventRepository;
+        _serviceScopeFactory = serviceScopeFactory;
+        using var scope = _serviceScopeFactory.CreateScope();
+        var _context = scope.ServiceProvider.GetRequiredService<PeepsDbContext>();
+        _orderRepository = scope.ServiceProvider.GetRequiredService<IPrintifyOrderRepository>();
+        _eventRepository = scope.ServiceProvider.GetRequiredService<IPrintifyEventRepository>();
         _httpClient = httpClient;
         _logger = logger;
     }
