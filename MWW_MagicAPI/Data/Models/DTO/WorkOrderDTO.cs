@@ -20,5 +20,5 @@ public record MagicUnit
     public int ProdNoCompany { get; set; }
     public int? OpenSeq { get; set; }
     public string BatchID { get; set; }
-    public int PrintOrder { get; set; }
+    public short? PrintOrder { get; set; }
 }

@@ -74,7 +74,8 @@ try
     builder.Services.AddScoped<IFixBatchService, FixBatchService>();
     builder.Services.AddScoped<IUpdateExentaStatusesService, UpdateExentaStatusesService>();
     builder.Services.AddScoped<ISyncService, MagicSyncService>();
-    builder.Services.AddHttpClient<ISyncService, PrintifySyncService>();
+    builder.Services.AddScoped<ISyncService, PrintifySyncService>();
+    builder.Services.AddHttpClient<PrintifySyncService>();
     builder.Services.AddMemoryCache();
 
     // Add configuration from appsettings.json or other sources
