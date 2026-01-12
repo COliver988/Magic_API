@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Hangfire;
+using Microsoft.EntityFrameworkCore;
 using MWW_Api.Config;
 using MWW_Api.Models.Magic;
 using MWW_Api.Repositories.Magic;
@@ -35,6 +36,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     }
 
     // TODO: track last timestam p in DBs for update span to only update what is new
+    [Queue("datasync")]
     public async Task<int> UpdateExentaStatuses(int minutes)
     {
         // load the milestones mappings
@@ -92,7 +94,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     /// <param name="minutes">number of minutes to search back into if no timestamp record</param>
     /// <param name="context">specific shopfloor DB instance</param>
     /// <returns></returns>
-    private async Task<List<UpdateData>> GetUpdateData(int minutes, string shopfloorCode)
+    public async Task<List<UpdateData>> GetUpdateData(int minutes, string shopfloorCode)
     {
         ShopfloorDbContext context = _contextFactory.GetContext(shopfloorCode);
         DateTime cutoff = GetLastCheckedUtc(minutes, shopfloorCode);
@@ -132,13 +134,13 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         }   
     }
 
-    private DateTime GetLastCheckedUtc(int minutes, string shopfloorCode)
+    public DateTime GetLastCheckedUtc(int minutes, string shopfloorCode)
     {
         SFCTimestamp? timestamp = _sfcTimestamps.FirstOrDefault(s => s.Location == shopfloorCode);
         return timestamp?.LastChecked ?? DateTime.UtcNow.AddMinutes(-minutes);
     }
 
-    private async Task UpdateSFCTimestamp(string shopfloorCode, DateTime lastCheck)
+    public async Task UpdateSFCTimestamp(string shopfloorCode, DateTime lastCheck)
     {
         SFCTimestamp? timestamp = _sfcTimestamps.FirstOrDefault(s => s.Location == shopfloorCode);
         if (timestamp != null)
