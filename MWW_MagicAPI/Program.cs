@@ -77,8 +77,8 @@ try
     builder.Services.AddScoped<IShopfloorDbContextFactory, ShopfloorDbContextFactory>();
     builder.Services.AddScoped<IFixBatchService, FixBatchService>();
     builder.Services.AddScoped<IUpdateExentaStatusesService, UpdateExentaStatusesService>();
-    builder.Services.AddScoped<ISyncService, MagicSyncService>();
-    builder.Services.AddScoped<ISyncService, PrintifySyncService>();
+    builder.Services.AddKeyedScoped<ISyncService, MagicSyncService>("magicSyncService");
+    builder.Services.AddKeyedScoped<ISyncService, PrintifySyncService>("printifySyncService");
     builder.Services.AddHttpClient<PrintifySyncService>();
     builder.Services.AddMemoryCache();
 
