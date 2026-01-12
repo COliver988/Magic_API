@@ -53,8 +53,11 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
 
         using var scope = _scopeFactory.CreateScope();
         var workerLogger = scope.ServiceProvider.GetRequiredService<ILogger<IUpdateExentaStatusesService>>();
-        var tasks = _workers.Select(w => w.SyncData(data, _milestoneMappings, _scopeFactory, workerLogger));
+        workerLogger.LogInformation("Resolving scoped sync workers and starting sync");
+        var scopedWorkers = scope.ServiceProvider.GetRequiredService<IEnumerable<ISyncService>>();
+        var tasks = scopedWorkers.Select(w => w.SyncData(data, _milestoneMappings));
         int[] results = await Task.WhenAll(tasks);
+        workerLogger.LogInformation($"Sync workers completed; total updates: {results.Sum()}");
         return results.Sum();
     }
 

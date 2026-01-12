@@ -6,7 +6,10 @@ using MWW_Api.Config;
 using MWW_Api.Http.Middleware.Health;
 using MWW_Api.Repositories.Exenta;
 using MWW_Api.Repositories.Magic;
+using MWW_MagicAPI.Data.Contexts;
 using MWW_MagicAPI.Data.Models;
+using MWW_MagicAPI.Data.Repository.Peeps.Printify;
+using MWW_MagicAPI.Data.RepositoryContracts.Peeps.Printify;
 using MWW_MagicAPI.Services;
 using MWW_MagicAPI.Services.SyncServices;
 using Prometheus;
@@ -49,10 +52,16 @@ try
     builder.Services.AddScoped<IMilestoneMapperRepository, MilestoneMapperRepository>();
     builder.Services.AddScoped<ISFCTimestampRepository, SFCTimestampRepository>();
 
+    // Peeps
+    builder.Services.AddScoped<IPrintifyOrderRepository, PrintifyOrderRepository>();
+    builder.Services.AddScoped<IPrintifyEventRepository, PrintifyEventRepository>();
+
+
     // db context
     builder.Services.AddDbContext<MagicDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Magic")));
     builder.Services.AddDbContext<ExentaDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Exenta")));
     builder.Services.AddDbContext<SerilogDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Database:Serilog")));
+    builder.Services.AddDbContext<PeepsDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Database:Peeps")));
     
     // Shopfloor
     builder.Services.AddDbContext<ShopfloorHVDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:ShopfloorHV")));
@@ -65,6 +74,8 @@ try
     builder.Services.AddScoped<IFixBatchService, FixBatchService>();
     builder.Services.AddScoped<IUpdateExentaStatusesService, UpdateExentaStatusesService>();
     builder.Services.AddScoped<ISyncService, MagicSyncService>();
+    builder.Services.AddScoped<ISyncService, PrintifySyncService>();
+    builder.Services.AddHttpClient<PrintifySyncService>();
     builder.Services.AddMemoryCache();
 
     // Add configuration from appsettings.json or other sources
