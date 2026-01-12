@@ -5,5 +5,5 @@ namespace MWW_MagicAPI.Services.SyncServices;
 
 public interface ISyncService
 {
-    Task<int> SyncData(List<UpdateData> data, List<MilestoneMapper> milestoneMappings, IServiceScopeFactory scopeFactory, ILogger<IUpdateExentaStatusesService> logger);
+    Task<int> SyncData(List<UpdateData> data, List<MilestoneMapper> milestoneMappings);
 }
