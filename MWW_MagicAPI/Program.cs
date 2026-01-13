@@ -183,7 +183,7 @@ try
 
     RecurringJob.AddOrUpdate<UpdateExentaStatusesService>(
        recurringJobId: "UpdateExentaStatusesService",
-       methodCall: x => x.UpdateExentaStatuses(30),
+       methodCall: x => x.UpdateExentaStatuses(5),
        cronExpression: "*/10 * * * *",
        queue: "datasync",
        options: new RecurringJobOptions { });
