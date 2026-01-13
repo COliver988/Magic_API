@@ -141,7 +141,7 @@ public class MagicSyncService : ISyncService
             await magicContext.SaveChangesAsync();
 
             // 4. Commit the transaction to the database
-            await transaction.CommitAsync();
+            //await transaction.CommitAsync();
 
             _logger.LogInformation("Successfully updated {Count} records in Magic DB.", detailsUpdated);
             return detailsUpdated;

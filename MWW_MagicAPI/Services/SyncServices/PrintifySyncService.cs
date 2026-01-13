@@ -1,4 +1,5 @@
-﻿using MWW_Api.Models.Magic;
+﻿using Microsoft.EntityFrameworkCore;
+using MWW_Api.Models.Magic;
 using MWW_Api.Models.Peeps.Printify;
 using MWW_MagicAPI.Data.Contexts;
 using MWW_MagicAPI.Data.Models.DTO;
@@ -52,16 +53,39 @@ public class PrintifySyncService : ISyncService
 
     private async Task<List<UpdateData>> FilterPrintifyOrders(List<UpdateData> data)
     {
-        List<UpdateData> printifyOrders = new List<UpdateData>();
-        foreach (var update in data)
+        if (data == null || data.Count == 0)
+            return new List<UpdateData>();
+
+        // collect distinct, non-empty serials
+        var serials = data
+            .Select(d => d.SerialNumber?.Trim())
+            .Where(s => !string.IsNullOrEmpty(s))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (serials.Count == 0)
+            return new List<UpdateData>();
+
+        // Query in chunks to avoid huge IN lists
+        var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        const int chunkSize = 100;
+        for (int i = 0; i < serials.Count; i += chunkSize)
         {
-            PrintifyOrder? order = await _orderRepository.GetByOrderPOAsync(update.SerialNumber);
-            if (order != null)
-            {
-                printifyOrders.Add(update);
-            }
+            var chunk = serials.Skip(i).Take(chunkSize).ToList();
+            var matched = await _context.PrintifyOrders
+                .AsNoTracking()
+                .Where(o => chunk.Contains(o.UniqueId))
+                .Select(o => o.UniqueId)
+                .ToListAsync();
+
+            foreach (var id in matched)
+                found.Add(id?.Trim() ?? string.Empty);
         }
-        return printifyOrders;
+
+        // preserve original ordering and return only updates that exist in PrintifyOrders
+        return data
+            .Where(d => !string.IsNullOrWhiteSpace(d.SerialNumber) && found.Contains(d.SerialNumber.Trim()))
+            .ToList();
     }
 
     private async Task<int> UpdatePrintifyStatuses(
