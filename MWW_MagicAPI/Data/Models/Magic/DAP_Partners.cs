@@ -7,7 +7,7 @@ namespace MWW_Api.Models.Magic;
 public class DapPartner
 {
     [Key]
-    public decimal? UNIQ_ID { get; set; }
+    public int UNIQ_ID { get; set; }
     public string? PO { get; set; }
     public string? BILL_NAME { get; set; }
     public string? BILL_ADDRESS1 { get; set; }
@@ -33,8 +33,14 @@ public class DapPartner
     public string? RETOUCH { get; set; }
     public string? NOTES { get; set; }
     public string? IMG_FILENAME { get; set; }
+
+    [Column(TypeName = "decimal(19,4)")]
     public decimal? ITEM_TOTAL { get; set; }
+
+    [Column(TypeName = "decimal(19,4)")]
     public decimal? SHIPPING_TOTAL { get; set; }
+
+    [Column(TypeName = "decimal(19,4)")]
     public decimal? GRAND_TOTAL { get; set; }
     public DateTime DATE_PLACED { get; set; }
     public string? CC_NAME { get; set; }
@@ -56,9 +62,15 @@ public class DapPartner
     public string? CANVAS_BASE_PRICE { get; set; }
     public string? GALLERY_WRAP_PRICE { get; set; }
     public string? BRUSH_STROKES_PRICE { get; set; }
+
+    [Column(TypeName = "decimal(19,4)")]
     public decimal? RETOUCH_PRICE { get; set; }
+
+    [Column(TypeName = "decimal(19,4)")]
     public decimal? TAX { get; set; }
     public string? PROMOTION_NUM { get; set; }
+
+    [Column(TypeName = "decimal(19,4)")]
     public decimal? PROMOTION_AMT { get; set; }
     public string? TAPESTRY_COLOR { get; set; }
     public string? SIGNATURE { get; set; }

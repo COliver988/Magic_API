@@ -1,12 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-
-namespace MWW_Api.Models.Magic;
+﻿namespace MWW_Api.Models.Magic;
 
 public class DyePrintDetails
 {
-    public string CO_Number { get; set; }
+    public required string CO_Number { get; set; }
     public short Ln_No { get; set; }
-    public string PO { get; set; }
+    public required string PO { get; set; }
     public string? TemplateID { get; set; }
     public string? PrinterID { get; set; }
     public string? Status { get; set; }
