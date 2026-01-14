@@ -30,6 +30,7 @@ public class MagicSyncService : ISyncService
     public async Task<int> SyncData(List<UpdateData> data, 
         List<MilestoneMapper> mappings)
     {
+        return -1;  // testing other process
         _mappings = mappings;
         return await UpdateMagicStatuses(data);
     }

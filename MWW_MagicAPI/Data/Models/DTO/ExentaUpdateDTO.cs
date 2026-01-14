@@ -8,6 +8,9 @@ public record UpdateData
     public long OperationId { get; set; }
     public long ProductId { get; set; }
     public string SerialNumber { get; set; }
+
+    // original vendor PO
+    public string VendorPO { get; set; }
     public DateTime Created { get; set; }
 }
 

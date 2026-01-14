@@ -4,7 +4,6 @@ using MWW_Api.Models.Peeps.Printify;
 using MWW_MagicAPI.Data.Contexts;
 using MWW_MagicAPI.Data.Models.DTO;
 using MWW_MagicAPI.Data.RepositoryContracts.Peeps.Printify;
-using MWW_MagicAPI.Services.SyncServices;
 
 namespace MWW_MagicAPI.Services.SyncServices;
 
@@ -53,25 +52,15 @@ public class PrintifySyncService : ISyncService
 
     private async Task<List<UpdateData>> FilterPrintifyOrders(List<UpdateData> data)
     {
-        if (data == null || data.Count == 0)
+        List<string> pos = GetDistinctPOs(data);
+        if (pos == null || pos.Count == 0)
             return new List<UpdateData>();
 
-        // collect distinct, non-empty serials
-        var serials = data
-            .Select(d => d.SerialNumber?.Trim())
-            .Where(s => !string.IsNullOrEmpty(s))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        if (serials.Count == 0)
-            return new List<UpdateData>();
-
-        // Query in chunks to avoid huge IN lists
         var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         const int chunkSize = 100;
-        for (int i = 0; i < serials.Count; i += chunkSize)
+        for (int i = 0; i < pos.Count; i += chunkSize)
         {
-            var chunk = serials.Skip(i).Take(chunkSize).ToList();
+            var chunk = pos.Skip(i).Take(chunkSize).ToList();
             var matched = await _context.PrintifyOrders
                 .AsNoTracking()
                 .Where(o => chunk.Contains(o.UniqueId))
@@ -84,8 +73,20 @@ public class PrintifySyncService : ISyncService
 
         // preserve original ordering and return only updates that exist in PrintifyOrders
         return data
-            .Where(d => !string.IsNullOrWhiteSpace(d.SerialNumber) && found.Contains(d.SerialNumber.Trim()))
+            .Where(d => !string.IsNullOrWhiteSpace(d.VendorPO) && found.Contains(d.VendorPO.Trim()))
             .ToList();
+    }
+
+    private List<string>? GetDistinctPOs(List<UpdateData> data)
+    {
+        List<string> results = new List<string>();
+        if (data != null || data.Count > 0)
+        results = data
+            .Select(d => d.VendorPO?.Trim())
+            .Where(s => !string.IsNullOrEmpty(s))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        return results;
     }
 
     private async Task<int> UpdatePrintifyStatuses(
@@ -102,7 +103,7 @@ public class PrintifySyncService : ISyncService
 
             if (mapped == null) continue;
 
-            if (await ProcessUpdate(update.SerialNumber, mapped.PrintifyStatus!))
+            if (await ProcessUpdate(update.VendorPO, mapped.PrintifyStatus!))
                 updated++;
         }
 
@@ -188,6 +189,8 @@ public class PrintifySyncService : ISyncService
             {
                 OrderId = order.Id,
                 Action = currentStatus,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
                 AffectedItems = order.PrintifyItems.Select(i => i.UniqueId).ToArray()
             });
         }

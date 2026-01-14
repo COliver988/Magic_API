@@ -7,7 +7,7 @@ namespace MWW_Api.Models.Magic;
 public class DapPartner
 {
     [Key]
-    public int UNIQ_ID { get; set; }
+    public decimal UNIQ_ID { get; set; }
     public string? PO { get; set; }
     public string? BILL_NAME { get; set; }
     public string? BILL_ADDRESS1 { get; set; }

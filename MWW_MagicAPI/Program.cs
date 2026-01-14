@@ -79,6 +79,7 @@ try
     builder.Services.AddScoped<IUpdateExentaStatusesService, UpdateExentaStatusesService>();
     builder.Services.AddScoped<ISyncService, MagicSyncService>();
     builder.Services.AddScoped<ISyncService, PrintifySyncService>();
+    builder.Services.AddScoped<IUpdateSyncDataService, UpdateSyncDataService>();
     builder.Services.AddHttpClient<PrintifySyncService>();
     builder.Services.AddMemoryCache();
 

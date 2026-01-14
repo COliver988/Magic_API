@@ -53,6 +53,9 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         }
 
         using var scope = _scopeFactory.CreateScope();
+        IUpdateSyncDataService updateDataService = scope.ServiceProvider.GetRequiredService<IUpdateSyncDataService>();
+        // add any other data we need for updates (customer PO, etc)
+        data = await updateDataService.UpdateSyncData(data);
         var workerLogger = scope.ServiceProvider.GetRequiredService<ILogger<IUpdateExentaStatusesService>>();
         workerLogger.LogInformation("Resolving scoped sync workers and starting sync");
         var scopedWorkers = scope.ServiceProvider.GetRequiredService<IEnumerable<ISyncService>>();

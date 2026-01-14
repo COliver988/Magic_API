@@ -5,7 +5,7 @@ namespace MWW_Api.Models.Peeps.Printify;
 [Table("printify_events")]
 public class PrintifyEvent
 {
-    [Column]
+    [Column("id")]
     public long Id { get; set; }
 
     [Column("order_id")]
