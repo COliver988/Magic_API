@@ -34,7 +34,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         _workers = workers ?? Enumerable.Empty<ISyncService>();
     }
 
-    // TODO: track last timestam p in DBs for update span to only update what is new
+    // TODO: track last timestamp in DBs for update span to only update what is new
     [Queue("datasync")]
     public async Task<int> UpdateExentaStatuses(int minutes)
     {

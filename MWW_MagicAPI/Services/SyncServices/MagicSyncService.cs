@@ -30,7 +30,6 @@ public class MagicSyncService : ISyncService
     public async Task<int> SyncData(List<UpdateData> data, 
         List<MilestoneMapper> mappings)
     {
-        return -1;  // testing other process
         _mappings = mappings;
         return await UpdateMagicStatuses(data);
     }
@@ -128,24 +127,30 @@ public class MagicSyncService : ISyncService
 
         try
         {
-            // 1. Add records to the Change Tracker for UPCLogs
-            int logsAdded = await AddUPCLogs(updateOrders, magicContext);
-            if (logsAdded < 0) throw new Exception("Failed to prepare UPC logs.");
+            // 1. Add records/updates to the Change Tracker for DyePrintDetails
+            List<LegacyData> detailsUpdated = await UpdateDyePrintDetails(updateOrders, magicContext);
+            if (detailsUpdated.Count == 0) throw new Exception("Failed to prepare DyePrintDetails updates.");
 
-            // 2. Add records/updates to the Change Tracker for DyePrintDetails
-            int detailsUpdated = await UpdateDyePrintDetails(updateOrders, magicContext);
-            if (detailsUpdated < 0) throw new Exception("Failed to prepare DyePrintDetails updates.");
+            // 2. Add records to the Change Tracker for UPCLogs
+            int logsAdded = await AddUPCLogs(detailsUpdated, magicContext);
+            if (logsAdded != detailsUpdated.Count)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError("Failed to prepare all UPC log records. Expected: {Expected}, Actual: {Actual}. Rolling back transaction.",
+                    detailsUpdated.Count, logsAdded);
+                return -1;
+            }
 
             // 3. Persist all changes to the database at once
             // EF Core wraps SaveChangesAsync in its own internal transaction, 
             // but BeginTransactionAsync ensures nothing is committed until we say so.
-            await magicContext.SaveChangesAsync();
+            // await magicContext.SaveChangesAsync();
 
             // 4. Commit the transaction to the database
             //await transaction.CommitAsync();
 
             _logger.LogInformation("Successfully updated {Count} records in Magic DB.", detailsUpdated);
-            return detailsUpdated;
+            return detailsUpdated.Count;
         }
         catch (Exception ex)
         {
@@ -156,9 +161,9 @@ public class MagicSyncService : ISyncService
         }
     }
 
-    private async Task<int> UpdateDyePrintDetails(List<LegacyData> updateOrders, MagicDbContext magicContext)
+    private async Task<List<LegacyData>> UpdateDyePrintDetails(List<LegacyData> updateOrders, MagicDbContext magicContext)
     {
-        int result = 0;
+        List<LegacyData> updatedDetails = new();
 
         // Build a PO -> target status map for fast lookup
         var poToTarget = updateOrders
@@ -174,7 +179,7 @@ public class MagicSyncService : ISyncService
                 .ToListAsync();
 
             if (details.Count == 0)
-                return result;
+                return updatedDetails;
 
             // Update each entity's status (and any audit columns if present)
             var utcNow = DateTime.UtcNow;
@@ -187,16 +192,25 @@ public class MagicSyncService : ISyncService
                 if (!string.Equals(detail.Status, targetStatus, StringComparison.Ordinal))
                 {
                     detail.Status = targetStatus;
-                    result++;
+                    updatedDetails.Add(updateOrders.FirstOrDefault(u => 
+                        string.Equals(u.Po, detail.PO, StringComparison.OrdinalIgnoreCase) &&
+                        u.LnNo == detail.Ln_No.ToString()));
                 }
             }
 
-            return result;
+            // Get orders that were NOT updated
+            updatedDetails =updatedDetails.Where(d => d != null).ToList();
+            var notUpdatedOrders = updateOrders
+                .Where(order => !updatedDetails.Any(detail => 
+                    string.Equals(detail.Po, order.Po, StringComparison.OrdinalIgnoreCase) &&
+                    detail.LnNo == order.LnNo))
+                .ToList();
+            return updatedDetails.Where(d => d != null).ToList();
         }
         catch (Exception ex)
         {
             _logger.LogError($"Error updating DyePrintDetails: {ex.Message}");
-            return -1;
+            return new List<LegacyData>();
         }
     }
 
