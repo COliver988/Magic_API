@@ -1,4 +1,6 @@
-﻿namespace MWW_Api.Models.Shopfloor;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace MWW_Api.Models.Shopfloor;
 
 public class WorkOrder
 {
@@ -12,10 +14,20 @@ public class WorkOrder
     public int TotalOffStandardProductionCount { get; set; }
     public int TotalOnStandardDeviationCount { get; set; }
     public int TotalOffStandardDeviationCount { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
     public decimal TotalOnStandardSMV { get; set; }
+
+    [Column(TypeName = "decimal(12,6)")]
     public decimal TotalOffstandardSMV { get; set; }
+
+    [Column(TypeName = "decimal(12,6)")]
     public decimal TotalOnStandardDeviationSMV { get; set; }
+
+    [Column(TypeName = "decimal(18,6)")]
     public decimal TotalOffstandardDeviationSMV { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
     public decimal TotalMonetaryValue { get; set; }
     public int TotalOnStandardCycleTime { get; set; }
     public int TotalOffStandardCycleTime { get; set; }
@@ -41,6 +53,8 @@ public class WorkOrder
     public int TotalAuditCount { get; set; }
     public int TotalRepairCycleTime { get; set; }
     public int TotalRepairProductionCount { get; set; }
+
+    [Column(TypeName = "decimal(12,2)")]
     public decimal TotalRepairSMV { get; set; }
     public string? NotesHeader { get; set; }
     public bool HideInPlanning { get; set; }
@@ -52,15 +66,25 @@ public class WorkOrder
     public DateTime? Completed { get; set; }
     public DateTime? Consumed { get; set; }
     public int? QuantityMultiplier { get; set; }
+
+    [Column(TypeName = "decimal(18,6)")]
     public decimal? QuantityUOM { get; set; }
+
+    [Column(TypeName = "decimal(18,6)")]
     public decimal? TotalScrapUOM { get; set; }
+
+    [Column(TypeName = "decimal(18,6)")]
     public decimal? TotalProductionStartedUOM { get; set; }
+
+    [Column(TypeName = "decimal(18,6)")]
     public decimal? TotalProductionFinishedUOM { get; set; }
     public int? UnitOfQuantity { get; set; }
     public string? UnitOfQuantityKey { get; set; }
     public int? TotalUnits { get; set; }
     public int? WorkOrderStatus { get; set; }
     public bool? IsPrinted { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
     public decimal? PrintFactor { get; set; }
     public int? AuditId { get; set; }
     public int? TotalRepairCount { get; set; }

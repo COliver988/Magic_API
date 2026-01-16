@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
+using Hangfire;
+using Hangfire.PostgreSql;
+using HangfireBasicAuthenticationFilter;
 using MWW_Api.Config;
 using MWW_Api.Http.Middleware.Health;
 using MWW_Api.Repositories.Exenta;
@@ -61,6 +64,7 @@ try
     builder.Services.AddDbContext<MagicDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Magic")));
     builder.Services.AddDbContext<ExentaDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:Exenta")));
     builder.Services.AddDbContext<SerilogDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Database:Serilog")));
+    builder.Services.AddDbContext<HangfireDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Database:Hangfire")));
     builder.Services.AddDbContext<PeepsDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Database:Peeps")));
     
     // Shopfloor
@@ -75,6 +79,7 @@ try
     builder.Services.AddScoped<IUpdateExentaStatusesService, UpdateExentaStatusesService>();
     builder.Services.AddScoped<ISyncService, MagicSyncService>();
     builder.Services.AddScoped<ISyncService, PrintifySyncService>();
+    builder.Services.AddScoped<IUpdateSyncDataService, UpdateSyncDataService>();
     builder.Services.AddHttpClient<PrintifySyncService>();
     builder.Services.AddMemoryCache();
 
@@ -85,9 +90,20 @@ try
     builder.Host.UseSerilog((hostingContext, loggerConfiguration) =>
        loggerConfiguration.ReadFrom.Configuration(hostingContext.Configuration));
 
-    // Register your service
+    // Register your services
     builder.Services.AddScoped<IAuthService, AuthService>();
     builder.Services.AddScoped<IOrderReportService, OrderReportService>();
+
+    // hangfire - background tasks service
+    // note: queues are in order of priority
+    builder.Services.AddHangfire(config => config.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+        .UseSimpleAssemblyNameTypeSerializer()
+        .UseDefaultTypeSerializer()
+        .UsePostgreSqlStorage(options => options.UseNpgsqlConnection(builder.Configuration.GetConnectionString("Database:Hangfire"))));
+    builder.Services.AddHangfireServer(options =>
+    {
+        options.Queues = new[] { "datasync" };
+    });
 
     builder.Services.AddHealthChecks()
        .AddCheck("Magic DB",
@@ -118,6 +134,10 @@ try
            new SQLDbHealthCheck(builder.Configuration.GetConnectionString("Database:Exenta")),
            HealthStatus.Unhealthy,
            new string[] { "Exenta DB", "Database" })
+       .AddCheck("Hangfire DB",
+           new PostgresDbHealthCheck(builder.Configuration.GetConnectionString("Database:Hangfire")),
+           HealthStatus.Unhealthy,
+           new string[] { "Hangfire DB", "Database" })
        .AddCheck("Hvl Shopfloor File Access",
            new ShopfloorAccessCheck(builder.Configuration.GetValue<string>("Shopfloor:mww")),
            HealthStatus.Degraded,
@@ -149,6 +169,25 @@ try
         app.UseSwaggerUI();
         app.UseDeveloperExceptionPage();
     }
+
+    app.UseHangfireDashboard("/hangfire", new DashboardOptions
+    {
+        DashboardTitle = "Peeps 2.0 Hangfire Dashboard",
+        Authorization = new[]
+        {
+            new HangfireCustomBasicAuthenticationFilter{
+                User = builder.Configuration.GetSection("HangfireSettings:UserName").Value,
+                Pass = builder.Configuration.GetSection("HangfireSettings:Password").Value
+            }
+    }
+    });
+
+    RecurringJob.AddOrUpdate<UpdateExentaStatusesService>(
+       recurringJobId: "UpdateExentaStatusesService",
+       methodCall: x => x.UpdateExentaStatuses(5),
+       cronExpression: "*/10 * * * *",
+       queue: "datasync",
+       options: new RecurringJobOptions { });
 
     //app.UseHsts();
     app.UseHttpMetrics();

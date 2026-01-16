@@ -30,6 +30,7 @@ public class MagicSyncService : ISyncService
     public async Task<int> SyncData(List<UpdateData> data, 
         List<MilestoneMapper> mappings)
     {
+        return -1;  // testing other process
         _mappings = mappings;
         return await UpdateMagicStatuses(data);
     }
@@ -118,12 +119,41 @@ public class MagicSyncService : ISyncService
             _logger.LogInformation("No Magic DB updates required.");
             return 0;
         }
+
         using var scope = _serviceScopeFactory.CreateScope();
         MagicDbContext magicContext = scope.ServiceProvider.GetRequiredService<MagicDbContext>();
-        int result = await AddUPCLogs(updateOrders, magicContext);
-        if (result > 0)
-            result = await UpdateDyePrintDetails(updateOrders, magicContext);
-        return result;
+
+        // Start the transaction
+        using var transaction = await magicContext.Database.BeginTransactionAsync();
+
+        try
+        {
+            // 1. Add records to the Change Tracker for UPCLogs
+            int logsAdded = await AddUPCLogs(updateOrders, magicContext);
+            if (logsAdded < 0) throw new Exception("Failed to prepare UPC logs.");
+
+            // 2. Add records/updates to the Change Tracker for DyePrintDetails
+            int detailsUpdated = await UpdateDyePrintDetails(updateOrders, magicContext);
+            if (detailsUpdated < 0) throw new Exception("Failed to prepare DyePrintDetails updates.");
+
+            // 3. Persist all changes to the database at once
+            // EF Core wraps SaveChangesAsync in its own internal transaction, 
+            // but BeginTransactionAsync ensures nothing is committed until we say so.
+            await magicContext.SaveChangesAsync();
+
+            // 4. Commit the transaction to the database
+            //await transaction.CommitAsync();
+
+            _logger.LogInformation("Successfully updated {Count} records in Magic DB.", detailsUpdated);
+            return detailsUpdated;
+        }
+        catch (Exception ex)
+        {
+            // Roll back the transaction if anything fails
+            await transaction.RollbackAsync();
+            _logger.LogError(ex, "Magic DB transaction failed. All changes rolled back.");
+            return -1;
+        }
     }
 
     private async Task<int> UpdateDyePrintDetails(List<LegacyData> updateOrders, MagicDbContext magicContext)
@@ -161,7 +191,6 @@ public class MagicSyncService : ISyncService
                 }
             }
 
-            //await magicContext.SaveChangesAsync();
             return result;
         }
         catch (Exception ex)
@@ -194,8 +223,6 @@ public class MagicSyncService : ISyncService
 
             magicContext.UPCLogIns.AddRange(batchRecords);
 
-            // we'll save all transactions at once later
-            //await magicContext.SaveChangesAsync();
             return updateData.Count;
         }
         catch (Exception ex)

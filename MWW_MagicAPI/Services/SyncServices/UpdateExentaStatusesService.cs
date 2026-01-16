@@ -1,9 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Hangfire;
+using Microsoft.EntityFrameworkCore;
 using MWW_Api.Config;
 using MWW_Api.Models.Magic;
 using MWW_Api.Repositories.Magic;
 using MWW_MagicAPI.Data.Models.DTO;
-using System.Threading.Tasks;
 
 namespace MWW_MagicAPI.Services.SyncServices;
 
@@ -14,7 +14,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     private readonly ISFCTimestampRepository _sfcTimestampRepository;
     private readonly IServiceScopeFactory _scopeFactory;
     private ILogger<UpdateExentaStatusesService> _logger;
-    private List<string> _shopfloors  = new List<string>() { "HV", "PD", "TJ", "GM" };
+    private List<string> _shopfloors = new List<string>() { "HV", "PD", "TJ", "GM" };
     private List<MilestoneMapper> _milestoneMappings;
     private List<SFCTimestamp> _sfcTimestamps;
     private readonly IEnumerable<ISyncService> _workers;
@@ -35,6 +35,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     }
 
     // TODO: track last timestam p in DBs for update span to only update what is new
+    [Queue("datasync")]
     public async Task<int> UpdateExentaStatuses(int minutes)
     {
         // load the milestones mappings
@@ -52,6 +53,9 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         }
 
         using var scope = _scopeFactory.CreateScope();
+        IUpdateSyncDataService updateDataService = scope.ServiceProvider.GetRequiredService<IUpdateSyncDataService>();
+        // add any other data we need for updates (customer PO, etc)
+        data = await updateDataService.UpdateSyncData(data);
         var workerLogger = scope.ServiceProvider.GetRequiredService<ILogger<IUpdateExentaStatusesService>>();
         workerLogger.LogInformation("Resolving scoped sync workers and starting sync");
         var scopedWorkers = scope.ServiceProvider.GetRequiredService<IEnumerable<ISyncService>>();
@@ -95,7 +99,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     /// <param name="minutes">number of minutes to search back into if no timestamp record</param>
     /// <param name="context">specific shopfloor DB instance</param>
     /// <returns></returns>
-    private async Task<List<UpdateData>> GetUpdateData(int minutes, string shopfloorCode)
+    public async Task<List<UpdateData>> GetUpdateData(int minutes, string shopfloorCode)
     {
         ShopfloorDbContext context = _contextFactory.GetContext(shopfloorCode);
         DateTime cutoff = GetLastCheckedUtc(minutes, shopfloorCode);
@@ -132,16 +136,16 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         {
             _logger.LogError($"Error retrieving update data: {ex.Message}");
             return new List<UpdateData>();
-        }   
+        }
     }
 
-    private DateTime GetLastCheckedUtc(int minutes, string shopfloorCode)
+    public DateTime GetLastCheckedUtc(int minutes, string shopfloorCode)
     {
         SFCTimestamp? timestamp = _sfcTimestamps.FirstOrDefault(s => s.Location == shopfloorCode);
         return timestamp?.LastChecked ?? DateTime.UtcNow.AddMinutes(-minutes);
     }
 
-    private async Task UpdateSFCTimestamp(string shopfloorCode, DateTime lastCheck)
+    public async Task UpdateSFCTimestamp(string shopfloorCode, DateTime lastCheck)
     {
         SFCTimestamp? timestamp = _sfcTimestamps.FirstOrDefault(s => s.Location == shopfloorCode);
         if (timestamp != null)

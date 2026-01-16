@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace MWW_Api.Models.Shopfloor;
 
 public class Unit
@@ -11,11 +13,22 @@ public class Unit
     public int TotalOffStandardProductionCount { get; set; }
     public int TotalOnStandardDeviationCount { get; set; }
     public int TotalOffStandardDeviationCount { get; set; }
+
+    [Column(TypeName = "decimal(12,6)")]
     public decimal TotalOnStandardSMV { get; set; }
+
+    [Column(TypeName = "decimal(12,6)")]
     public decimal TotalOffstandardSMV { get; set; }
+
+    [Column(TypeName = "decimal(12,6)")]
     public decimal TotalOnStandardDeviationSMV { get; set; }
+
+    [Column(TypeName = "decimal(12,6)")]
     public decimal TotalOffstandardDeviationSMV { get; set; }
+
+    [Column(TypeName = "decimal(18,6)")]
     public decimal TotalMonetaryValue { get; set; }
+
     public int TotalOnStandardCycleTime { get; set; }
     public int TotalOffStandardCycleTime { get; set; }
     public int TotalPauseCycleTime { get; set; }
@@ -34,6 +47,8 @@ public class Unit
     public int TotalAuditCount { get; set; }
     public int TotalRepairCycleTime { get; set; }
     public int TotalRepairProductionCount { get; set; }
+
+    [Column(TypeName = "decimal(12,6)")]
     public decimal TotalRepairSMV { get; set; }
     public string? BatchId { get; set; }
     public int? BatchSeq { get; set; }
@@ -42,9 +57,17 @@ public class Unit
     public string? Content { get; set; }
     public DateTime? Completed { get; set; }
     public DateTime? Consumed { get; set; }
+
+    [Column(TypeName = "decimal(18,6)")]
     public decimal? QuantityUOM { get; set; }
+
+    [Column(TypeName = "decimal(18,6)")]
     public decimal? TotalScrapUOM { get; set; }
+
+    [Column(TypeName = "decimal(18,6)")]
     public decimal? TotalProductionStartedUOM { get; set; }
+
+    [Column(TypeName = "decimal(18,6)")]
     public decimal? TotalProductionFinishedUOM { get; set; }
     public int? TotalRepairCount { get; set; }
     public int? TotalReworkCount { get; set; }
