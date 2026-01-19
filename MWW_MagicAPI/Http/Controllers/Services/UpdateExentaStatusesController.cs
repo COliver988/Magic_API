@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MWW_MagicAPI.Data.Models.DTO;
 using MWW_MagicAPI.Services.SyncServices;
 
 namespace MWW_MagicAPI.Http.Controllers.Services;
@@ -21,8 +22,8 @@ public class UpdateExentaStatusesController : Controller
     {
         try
         {
-            int result = await _updateExentaStatusesService.UpdateExentaStatuses(minutes);
-            if (result >= 0)
+            List<SyncDataResults> result = await _updateExentaStatusesService.UpdateExentaStatuses(minutes);
+            if (result.Count >= 0)
                 return Ok(new { Message = $"{result} Exenta statuses updated successfully." });
             else
                 return StatusCode(500, new { Message = "Failed to update Exenta statuses." });

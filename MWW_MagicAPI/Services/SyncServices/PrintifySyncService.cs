@@ -38,12 +38,12 @@ public class PrintifySyncService : ISyncService
         _logger = logger;
     }
 
-    public async Task<int> SyncData(
+    public async Task<List<SyncDataResults>> SyncData(
         List<UpdateData> data,
         List<MilestoneMapper> milestoneMappings)
     {
         if (data == null || data.Count == 0)
-            return 0;
+            return new List<SyncDataResults>();
 
         // remove any non-Printify POs
         data = await FilterPrintifyOrders(data);
@@ -89,11 +89,11 @@ public class PrintifySyncService : ISyncService
         return results;
     }
 
-    private async Task<int> UpdatePrintifyStatuses(
+    private async Task<List<SyncDataResults>> UpdatePrintifyStatuses(
         List<UpdateData> updates,
         List<MilestoneMapper> mappings)
     {
-        int updated = 0;
+        List<SyncDataResults> updated = new();
 
         foreach (UpdateData update in updates)
         {
@@ -103,11 +103,10 @@ public class PrintifySyncService : ISyncService
 
             if (mapped == null) continue;
 
-            if (await ProcessUpdate(update.VendorPO, mapped.PrintifyStatus!))
-                updated++;
+            updated.AddRange(await ProcessUpdate(update, mapped.PrintifyStatus!));
         }
 
-        return updated;
+        return updated.Where(r => r != null).ToList();
     }
 
     /// <summary>
@@ -117,24 +116,32 @@ public class PrintifySyncService : ISyncService
     /// <param name="status"></param>
     /// <returns>true if success, false if not</returns>
     /// TODO: if it fails, how do we handle the update later? missed updates?
-    private async Task<bool> ProcessUpdate(string po, string status)
+    private async Task<List<SyncDataResults>?> ProcessUpdate(UpdateData update, string status)
     {
-        bool results = true;
+        List<SyncDataResults> results = new();
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            results = await _orderRepository.UpdateAsync(po, status);
-            if (results)
+            bool added = await _orderRepository.UpdateAsync(update.VendorPO, status);
+            if (added)
             {
-                results = await CreateEvents(po, status);
+                List<PrintifyEvent> events = await CreateEvents(update.VendorPO, status);
                 await transaction.CommitAsync();
+                results = events.Select(e => new SyncDataResults
+                {
+                    VendorPO = update.VendorPO,
+                    PO = update.SerialNumber,
+                    LnNo = 0,
+                    NewStatus = status,
+                    RecordType = "PrintifyEvent"
+                }).ToList();
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error processing Printify order update for PO {po} to status {status}");
+            _logger.LogError(ex, $"Error processing Printify order update for PO {update.VendorPO} to status {status}");
             await transaction.RollbackAsync();
-            results = false;
+            results = null;
         }
         return results;
     }
@@ -145,15 +152,16 @@ public class PrintifySyncService : ISyncService
     /// <param name="po"></param>
     /// <param name="status"></param>
     /// <returns></returns>
-    private async Task<bool> CreateEvents(string po, string status)
+    private async Task<List<PrintifyEvent>> CreateEvents(string po, string status)
     {
+        List<PrintifyEvent> addedEvents = new List<PrintifyEvent>();
         PrintifyOrder? order = await _orderRepository.GetByOrderPOAsync(po);
-        if (order == null) return false;
+        if (order == null) return addedEvents;
         List<PrintifyEvent> events = await _eventRepository.GetAllByOrder(order.Id);
         if (events.Any(e => e.Action == status))
-            return true; // event already exists
-        List<PrintifyEvent> newEvents = GenerateEvents(order, events, status);
-        List<PrintifyEvent> addedEvents = await _eventRepository.AddEvents(newEvents);
+            return addedEvents; // event already exists
+        addedEvents = GenerateEvents(order, events, status);
+        addedEvents = await _eventRepository.AddEvents(addedEvents);
         return await SendNotifications(addedEvents);
     }
 
@@ -163,9 +171,9 @@ public class PrintifySyncService : ISyncService
     /// <param name="addedEvents"></param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-    private async Task<bool> SendNotifications(List<PrintifyEvent> addedEvents)
+    private async Task<List<PrintifyEvent>> SendNotifications(List<PrintifyEvent> addedEvents)
     {
-        return true;
+        return addedEvents;
     }
 
     /// <summary>

@@ -27,14 +27,14 @@ public class MagicSyncService : ISyncService
         _serviceScopeFactory = serviceScopeFactory;
     }
 
-    public async Task<int> SyncData(List<UpdateData> data, 
+    public async Task<List<SyncDataResults>> SyncData(List<UpdateData> data, 
         List<MilestoneMapper> mappings)
     {
         _mappings = mappings;
         return await UpdateMagicStatuses(data);
     }
 
-    public async Task<int> UpdateMagicStatuses(List<UpdateData> data)
+    public async Task<List<SyncDataResults>> UpdateMagicStatuses(List<UpdateData> data)
     { 
         List<LegacyData> updateOrders = new(); // will contain legacy rows with Status set to target status
         var semaphore = new SemaphoreSlim(5); // max concurrency 5
@@ -100,7 +100,7 @@ public class MagicSyncService : ISyncService
                 {
                     Po = dpd.PO,
                     Co = dpd.CO_Number,
-                    LnNo = dpd.Ln_No.ToString(),
+                    LnNo = dpd.Ln_No,
                     Status = dpd.Status,
                     UserId = dp.CC_APPROVED, // legacy vendor ID aka CUID
                     LineNumber = dpd.Ln_No.ToString(),
@@ -111,12 +111,13 @@ public class MagicSyncService : ISyncService
         return current;
     }
 
-    public async Task<int> UpdateMagicDB(List<LegacyData> updateOrders)
+    public async Task<List<SyncDataResults>> UpdateMagicDB(List<LegacyData> updateOrders)
     {
+        List<SyncDataResults> results = new();
         if (updateOrders.Count == 0)
         {
             _logger.LogInformation("No Magic DB updates required.");
-            return 0;
+            return results;
         }
 
         using var scope = _serviceScopeFactory.CreateScope();
@@ -132,13 +133,12 @@ public class MagicSyncService : ISyncService
             if (detailsUpdated.Count == 0) throw new Exception("Failed to prepare DyePrintDetails updates.");
 
             // 2. Add records to the Change Tracker for UPCLogs
-            int logsAdded = await AddUPCLogs(detailsUpdated, magicContext);
-            if (logsAdded != detailsUpdated.Count)
+            results = await AddUPCLogs(detailsUpdated, magicContext);
+            if (results.Count != detailsUpdated.Count)
             {
                 await transaction.RollbackAsync();
-                _logger.LogError("Failed to prepare all UPC log records. Expected: {Expected}, Actual: {Actual}. Rolling back transaction.",
-                    detailsUpdated.Count, logsAdded);
-                return -1;
+                _logger.LogError("Failed to prepare all UPC log records for Printify updates.");
+                return results;
             }
 
             // 3. Persist all changes to the database at once
@@ -150,14 +150,14 @@ public class MagicSyncService : ISyncService
             //await transaction.CommitAsync();
 
             _logger.LogInformation("Successfully updated {Count} records in Magic DB.", detailsUpdated);
-            return detailsUpdated.Count;
+            return results;
         }
         catch (Exception ex)
         {
             // Roll back the transaction if anything fails
             await transaction.RollbackAsync();
             _logger.LogError(ex, "Magic DB transaction failed. All changes rolled back.");
-            return -1;
+            return results;
         }
     }
 
@@ -194,7 +194,7 @@ public class MagicSyncService : ISyncService
                     detail.Status = targetStatus;
                     updatedDetails.Add(updateOrders.FirstOrDefault(u => 
                         string.Equals(u.Po, detail.PO, StringComparison.OrdinalIgnoreCase) &&
-                        u.LnNo == detail.Ln_No.ToString()));
+                        u.LnNo == detail.Ln_No));
                 }
             }
 
@@ -219,7 +219,7 @@ public class MagicSyncService : ISyncService
     /// </summary>
     /// <param name="updateData"></param>
     /// <returns></returns>
-    public async Task<int> AddUPCLogs(List<LegacyData> updateData, MagicDbContext magicContext)
+    public async Task<List<SyncDataResults>> AddUPCLogs(List<LegacyData> updateData, MagicDbContext magicContext)
     {
         try
         {
@@ -237,12 +237,19 @@ public class MagicSyncService : ISyncService
 
             magicContext.UPCLogIns.AddRange(batchRecords);
 
-            return updateData.Count;
+            return updateData.Select(d => new SyncDataResults { PO = d.Po,
+                VendorPO = d.Po, 
+                LnNo = d.LnNo,
+                RecordType = "UPCLogIn",
+                OldStatus = "",
+                NewStatus = d.Status
+            })
+            .ToList();
         }
         catch (Exception ex)
         {
             _logger.LogError($"Error adding UPC logs: {ex.Message}");
-            return -1;
+            return new List<SyncDataResults>();
         }
     }
 
