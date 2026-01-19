@@ -24,7 +24,7 @@ public class UpdateExentaStatusesController : Controller
         {
             List<SyncDataResults> result = await _updateExentaStatusesService.UpdateExentaStatuses(minutes);
             if (result.Count >= 0)
-                return Ok(new { Message = $"{result} Exenta statuses updated successfully." });
+                return Ok(new { Message = $"Exenta statuses updated successfully.", Data = result });
             else
                 return StatusCode(500, new { Message = "Failed to update Exenta statuses." });
         }
