@@ -31,7 +31,7 @@ public class UpdateSyncDataService : IUpdateSyncDataService
 
         // perform batched queries against the DB to get PO -> TKRef1 mapping
         var mapping = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        const int chunkSize = 500;
+        const int chunkSize = 100;
 
         using var scope = _scopeFactory.CreateScope();
         var ctx = scope.ServiceProvider.GetRequiredService<MagicDbContext>();
