@@ -14,8 +14,8 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     private readonly ISFCTimestampRepository _sfcTimestampRepository;
     private readonly IServiceScopeFactory _scopeFactory;
     private ILogger<UpdateExentaStatusesService> _logger;
-    private List<string> _shopfloors = new List<string>() { "GM" };
-    //private List<string> _shopfloors = new List<string>() { "HV", "PD", "TJ", "GM" };
+    //private List<string> _shopfloors = new List<string>() { "GM" };
+    private List<string> _shopfloors = new List<string>() { "HV", "PD", "TJ", "GM" };
     private List<MilestoneMapper> _milestoneMappings;
     private List<SFCTimestamp> _sfcTimestamps;
     private readonly IEnumerable<ISyncService> _workers;

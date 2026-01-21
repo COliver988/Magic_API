@@ -2,6 +2,7 @@
 using MWW_Api.Config;
 using MWW_Api.Models.Magic;
 using MWW_MagicAPI.Data.Models.DTO;
+using Prometheus;
 
 namespace MWW_MagicAPI.Services.SyncServices;
 
@@ -15,7 +16,7 @@ public class MagicSyncService : ISyncService
     {
         "printed", "Printed", "PRINTED", "ToTenter", "AtTenter",
         "InTenter", "waitingLoom", "ToStretch", "stretch", "inLoom",
-        "ToCut", "toCut", "ToPack", "ToPB", "ToProc", "ToFinishing", 
+        "ToCut", "toCut", "ToPack", "ToPB", "ToProc", "ToFinishing",
         "InPB", "ToSew", "InSew", "ToCircleTack", "ToShip", "cancel"
     };
 
@@ -27,7 +28,7 @@ public class MagicSyncService : ISyncService
         _serviceScopeFactory = serviceScopeFactory;
     }
 
-    public async Task<List<SyncDataResults>> SyncData(List<UpdateData> data, 
+    public async Task<List<SyncDataResults>> SyncData(List<UpdateData> data,
         List<MilestoneMapper> mappings)
     {
         _mappings = mappings;
@@ -35,7 +36,7 @@ public class MagicSyncService : ISyncService
     }
 
     public async Task<List<SyncDataResults>> UpdateMagicStatuses(List<UpdateData> data)
-    { 
+    {
         List<LegacyData> updateOrders = new(); // will contain legacy rows with Status set to target status
         var semaphore = new SemaphoreSlim(5); // max concurrency 5
         var addLock = new object();
@@ -89,26 +90,32 @@ public class MagicSyncService : ISyncService
     /// <returns></returns>
     public async Task<LegacyData?> LoadLegacyData(string po)
     {
-        using var scope = _serviceScopeFactory.CreateScope();
-        MagicDbContext magicContext = scope.ServiceProvider.GetRequiredService<MagicDbContext>();
-        LegacyData? current = await magicContext.DyePrintDetails.AsNoTracking()
-            .Where(dpd => dpd.PO == po && !excludedStatuses.Contains(dpd.Status.ToLower()))
-            .Join(magicContext.DapPartners.AsNoTracking(),
-                dpd => dpd.PO,
-                dp => dp.PO,
-                (dpd, dp) => new LegacyData
-                {
-                    Po = dpd.PO,
-                    Co = dpd.CO_Number,
-                    LnNo = dpd.Ln_No,
-                    Status = dpd.Status,
-                    UserId = dp.CC_APPROVED, // legacy vendor ID aka CUID
-                    LineNumber = dpd.Ln_No.ToString(),
-                    BatchSeq = dpd.BatchID + "_" + dpd.PrintOrder
-                })
-            .FirstOrDefaultAsync();
+        using var timer = HistogramMetrics.LegacyLoadDuration
+            .WithLabels(nameof(LoadLegacyData))
+            .NewTimer();
 
-        return current;
+        using var scope = _serviceScopeFactory.CreateScope();
+        var magicContext = scope.ServiceProvider.GetRequiredService<MagicDbContext>();
+
+        var loweredStatuses = excludedStatuses.Select(s => s.ToLower()).ToList();
+
+        var query =
+            from dpd in magicContext.DyePrintDetails.AsNoTracking()
+            where dpd.PO == po && !loweredStatuses.Contains(dpd.Status.ToLower())
+            join dp in magicContext.DapPartners.AsNoTracking().Where(x => x.PO == po)
+                on dpd.PO equals dp.PO
+            select new LegacyData
+            {
+                Po = dpd.PO,
+                Co = dpd.CO_Number,
+                LnNo = dpd.Ln_No,
+                Status = dpd.Status,
+                UserId = dp.CC_APPROVED,
+                LineNumber = dpd.Ln_No.ToString(),
+                BatchSeq = dpd.BatchID + "_" + dpd.PrintOrder
+            };
+
+        return await query.FirstOrDefaultAsync();
     }
 
     public async Task<List<SyncDataResults>> UpdateMagicDB(List<LegacyData> updateOrders)
@@ -144,7 +151,7 @@ public class MagicSyncService : ISyncService
             // 3. Persist all changes to the database at once
             // EF Core wraps SaveChangesAsync in its own internal transaction, 
             // but BeginTransactionAsync ensures nothing is committed until we say so.
-            // await magicContext.SaveChangesAsync();
+            //await magicContext.SaveChangesAsync();
 
             // 4. Commit the transaction to the database
             //await transaction.CommitAsync();
@@ -192,16 +199,16 @@ public class MagicSyncService : ISyncService
                 if (!string.Equals(detail.Status, targetStatus, StringComparison.Ordinal))
                 {
                     detail.Status = targetStatus;
-                    updatedDetails.Add(updateOrders.FirstOrDefault(u => 
+                    updatedDetails.Add(updateOrders.FirstOrDefault(u =>
                         string.Equals(u.Po, detail.PO, StringComparison.OrdinalIgnoreCase) &&
                         u.LnNo == detail.Ln_No));
                 }
             }
 
             // Get orders that were NOT updated
-            updatedDetails =updatedDetails.Where(d => d != null).ToList();
+            updatedDetails = updatedDetails.Where(d => d != null).ToList();
             var notUpdatedOrders = updateOrders
-                .Where(order => !updatedDetails.Any(detail => 
+                .Where(order => !updatedDetails.Any(detail =>
                     string.Equals(detail.Po, order.Po, StringComparison.OrdinalIgnoreCase) &&
                     detail.LnNo == order.LnNo))
                 .ToList();
@@ -237,8 +244,10 @@ public class MagicSyncService : ISyncService
 
             magicContext.UPCLogIns.AddRange(batchRecords);
 
-            return updateData.Select(d => new SyncDataResults { PO = d.Po,
-                VendorPO = d.Po, 
+            return updateData.Select(d => new SyncDataResults
+            {
+                PO = d.Po,
+                VendorPO = d.Po,
                 LnNo = d.LnNo,
                 RecordType = "UPCLogIn",
                 OldStatus = "",
