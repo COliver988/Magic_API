@@ -202,11 +202,6 @@ try
     app.UseHealthChecks("/api/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
     { ResponseWriter = HealthCheckExtensions.WriteResponse });
 
-    Log.Information(builder.Configuration.GetConnectionString("Database:Serilog"));
-    Log.Information(builder.Configuration.GetConnectionString("Database:Magic"));
-    Log.Information(builder.Configuration.GetConnectionString("Database:Exenta"));
-    Log.Information(builder.Configuration.GetConnectionString("Database:ShopfloorHV"));
-
     app.Run();
 }
 catch (Exception ex)

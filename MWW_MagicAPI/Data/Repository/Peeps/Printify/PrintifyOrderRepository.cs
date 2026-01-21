@@ -30,14 +30,21 @@ public class PrintifyOrderRepository : IPrintifyOrderRepository
     /// <returns>true if success else false</returns>
     public async Task<bool> UpdateAsync(string po, string newStatus)
     {
-        // get it into tracked state
-        PrintifyOrder? order = await _context.PrintifyOrders.FirstOrDefaultAsync(o => o.UniqueId == po);
+        // get it into tracked state and include items so we can update them without a second query
+        PrintifyOrder? order = await _context.PrintifyOrders
+            .Include(o => o.PrintifyItems)
+            .FirstOrDefaultAsync(o => o.UniqueId == po);
+
         if (order == null || order.Status == newStatus) return false;
 
         order.Status = newStatus;
-        List<PrintifyItem> printifyItems = await _context.PrintifyItems.Where(i => i.OrderId == order.Id).ToListAsync();
-        foreach (var item in printifyItems)
-            item.Status = newStatus;
+
+        if (order.PrintifyItems != null)
+        {
+            foreach (var item in order.PrintifyItems)
+                item.Status = newStatus;
+        }
+
         await _context.SaveChangesAsync();
 
         return true;

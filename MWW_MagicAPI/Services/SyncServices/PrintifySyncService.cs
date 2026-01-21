@@ -141,7 +141,7 @@ public class PrintifySyncService : ISyncService
         {
             _logger.LogError(ex, $"Error processing Printify order update for PO {update.VendorPO} to status {status}");
             await transaction.RollbackAsync();
-            results = null;
+            results = new List<SyncDataResults>();
         }
         return results;
     }
