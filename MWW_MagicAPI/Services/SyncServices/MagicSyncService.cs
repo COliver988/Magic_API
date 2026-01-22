@@ -235,10 +235,10 @@ public class MagicSyncService : ISyncService
                 CUST_PO_NO = entry.Po,
                 CO_NUMBER = entry.Co,
                 CUST_ID = entry.UserId,
-                USERID = entry.Status,
+                USERID = entry.Status.ToUpper(),
                 SHIP_VIA = entry.LineNumber,
                 CreateDate = DateTime.UtcNow,
-                LOG_DATE = DateTime.UtcNow.ToString("yyyyMMdd"),
+                LOG_DATE = DateTime.UtcNow.ToString("MMM dd yyyy h:mmtt"),
                 SYSTEM_NAME = "MWWMagicAPI",
             }).ToList();
 
