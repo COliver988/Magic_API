@@ -18,9 +18,9 @@ public class ProductOverridesController : ControllerBase
     }
 
     [HttpGet("AllByOverrideType")]
-    public async Task<List<ProductOverride>> GetAllByOverrideType(int? overrideType)
+    public async Task<List<ProductOverride>> GetAllByOverrideType(int? overrideType, int page = 1, int pageSize = 20)
     {
-        return await _repo.GetAllByOverrideType(overrideType);
+        return await _repo.GetAllByOverrideType(overrideType, page, pageSize);
     }
 
     [HttpGet("ByProductAndOverrideType")]

@@ -23,12 +23,15 @@ public class ProductOverrideRepository : IProductOverrideRepository
         return _context.SaveChangesAsync();
     }
 
-    public async Task<List<ProductOverride>> GetAllByOverrideType(int? overrideType)
+    public async Task<List<ProductOverride>> GetAllByOverrideType(int? overrideType, int? page = 1, int? pageSize = 20)
     {
+        if (page <= 0) page = 1;
+        if (pageSize <= 0) pageSize = 20;
         if (overrideType == 0)
-            return await _context.ProductOverrides.AsNoTracking().ToListAsync();
+            return await _context.ProductOverrides.AsNoTracking().Skip((page.Value - 1) * (pageSize.Value)).Take(pageSize.Value).ToListAsync();
         else
-            return await _context.ProductOverrides.Where(p => p.OverrideType == overrideType).AsNoTracking().ToListAsync();
+            return await _context.ProductOverrides.Where(p => p.OverrideType == overrideType)
+                .AsNoTracking().Skip((page.Value - 1) * (pageSize.Value)).Take(pageSize.Value).ToListAsync();
     }
 
     public async Task<List<ProductOverride>> GetByProduct(string product) => await _context.ProductOverrides.Where(p => p.ProductCode == product).AsNoTracking().ToListAsync();
