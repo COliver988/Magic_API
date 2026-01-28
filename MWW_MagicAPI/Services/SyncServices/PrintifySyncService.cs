@@ -167,24 +167,13 @@ public class PrintifySyncService : ISyncService
     }
 
     /// <summary>
-    /// send the client notifications if we have shipping info; should also fill in event details
-    /// </summary>
-    /// <param name="order">Printify order</param>
-    /// <returns></returns>
-    private async Task SendNotifications(PrintifyOrder order, PrintifyEvent shippedEvent)
-    {
-        //TODO: send notification to client that order has shipped IF we have the Exenta tracking number
-        await Task.CompletedTask;
-    }
-
-    /// <summary>
     /// create a list of events for this status and any previous that are missing
     /// </summary>
     /// <param name="order"></param>
     /// <param name="existingEvents"></param>
     /// <param name="status"></param>
     /// <returns></returns>
-    private List<PrintifyEvent> GenerateEvents(PrintifyOrder order, List<PrintifyEvent> existingEvents, string status)
+    private async Task<List<PrintifyEvent>> GenerateEvents(PrintifyOrder order, List<PrintifyEvent> existingEvents, string status)
     {
         List<PrintifyEvent> events = new List<PrintifyEvent>();
         Array statuses = Enum.GetValues(typeof(PrintifyStatuses));
@@ -204,16 +193,39 @@ public class PrintifySyncService : ISyncService
             });
         }
         if (status == PrintifyStatuses.shipped.ToString())
-        {
-            // find the shipped event we just added
-            var shippedEvent = events.FirstOrDefault(e => e.Action == PrintifyStatuses.shipped.ToString());
-            if (shippedEvent != null)
-            {
-                // send notification to client
-                _ = SendNotifications(order, shippedEvent);
-            }
-        }   
+            await CheckNotifications(order, events, existingEvents);
         return events;
+    }
+
+    /// <summary>
+    /// check for events; we may update an existing shipped event
+    /// </summary>
+    /// <param name="order"></param>
+    /// <param name="events"></param>
+    /// <param name="existingEvents"></param>
+    /// <returns></returns>
+    private async Task CheckNotifications(PrintifyOrder order, List<PrintifyEvent> events, List<PrintifyEvent> existingEvents)
+    {
+        // find the shipped event we just added
+        var shippedEvent = events.FirstOrDefault(e => e.Action == PrintifyStatuses.shipped.ToString());
+        if (shippedEvent == null)
+            shippedEvent = existingEvents.FirstOrDefault(e => e.Action == PrintifyStatuses.shipped.ToString());
+        if (shippedEvent != null)
+        {
+            // send notification to client
+            _ = SendNotifications(order, shippedEvent);
+        }
+    }
+
+    /// <summary>
+    /// send the client notifications if we have shipping info; should also fill in event details
+    /// </summary>
+    /// <param name="order">Printify order</param>
+    /// <returns></returns>
+    private async Task SendNotifications(PrintifyOrder order, PrintifyEvent shippedEvent)
+    {
+        //TODO: send notification to client that order has shipped IF we have the Exenta tracking number
+        await Task.CompletedTask;
     }
 
     /// <summary>
