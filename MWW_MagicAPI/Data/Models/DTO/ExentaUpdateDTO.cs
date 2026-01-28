@@ -11,6 +11,8 @@ public record UpdateData
 
     // original vendor PO
     public string VendorPO { get; set; }
+    public string FS_Status { get; set; }
+    public string? TrackingInfo { get; set; }
     public DateTime Created { get; set; }
 }
 

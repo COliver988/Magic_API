@@ -42,22 +42,38 @@ public class UpdateSyncDataService : IUpdateSyncDataService
             var rows = await ctx.DapPartners
                 .AsNoTracking()
                 .Where(d => chunk.Contains(d.PO))
-                .Select(d => new { d.PO, d.TKRef1 })
+                .Select(d => new { d.PO, d.TKRef1, d.FS_Status, d.FS_TrackingNumber })
                 .ToListAsync();
 
             foreach (var r in rows)
             {
                 if (!string.IsNullOrWhiteSpace(r.PO) && !mapping.ContainsKey(r.PO))
+                {
                     mapping[r.PO] = r.TKRef1 ?? string.Empty;
+                    mapping[$"FS_Status_{r.PO}"] = r.FS_Status ?? string.Empty;
+                    mapping[$"FS_TrackingNumber_{r.PO}"] = r.FS_TrackingNumber ?? string.Empty;
+                }
             }
         }
 
         // apply the mapping back to the input list
         foreach (var item in data)
         {
-            if (!string.IsNullOrWhiteSpace(item.SerialNumber) && mapping.TryGetValue(item.SerialNumber.Trim(), out var tk))
+            if (!string.IsNullOrWhiteSpace(item.SerialNumber))
             {
-                item.VendorPO = tk;
+                var serialKey = item.SerialNumber.Trim();
+                if (mapping.TryGetValue(serialKey, out var tk))
+                {
+                    item.VendorPO = tk;
+                }
+                if (mapping.TryGetValue($"FS_Status_{serialKey}", out var fsStatus))
+                {
+                    item.FS_Status = fsStatus;
+                }
+                if (mapping.TryGetValue($"FS_TrackingNumber_{serialKey}", out var fsTrackingNumber))
+                {
+                    item.TrackingInfo = fsTrackingNumber;
+                }
             }
         }
 
