@@ -242,6 +242,8 @@ public class MagicSyncService : ISyncService
                 SYSTEM_NAME = "MWWMagicAPI",
             }).ToList();
 
+            batchRecords = await DedupLegacy(batchRecords, magicContext);
+
             magicContext.UPCLogIns.AddRange(batchRecords);
 
             return updateData.Select(d => new SyncDataResults
@@ -262,4 +264,20 @@ public class MagicSyncService : ISyncService
         }
     }
 
+    private async Task<List<UPCLogIn>> DedupLegacy(List<UPCLogIn> newRecords, MagicDbContext magicContext)
+    {
+        var poNos = newRecords.Select(r => r.CUST_PO_NO).Distinct().ToList();
+        var existingLogs = await magicContext.UPCLogIns
+            .Where(log => poNos.Contains(log.CUST_PO_NO))
+            .AsNoTracking()
+            .ToListAsync();
+        var dedupedRecords = newRecords
+            .Where(newLog => !existingLogs.Any(existingLog =>
+                existingLog.CUST_PO_NO == newLog.CUST_PO_NO &&
+                existingLog.CO_NUMBER == newLog.CO_NUMBER &&
+                existingLog.USERID == newLog.USERID &&
+                existingLog.SHIP_VIA == newLog.SHIP_VIA))
+            .ToList();
+        return dedupedRecords;
+    }
 }

@@ -161,7 +161,7 @@ public class PrintifySyncService : ISyncService
         List<PrintifyEvent> events = await _eventRepository.GetAllByOrder(order.Id);
         if (events.Any(e => e.Action == status))
             return addedEvents; // event already exists
-        addedEvents = GenerateEvents(order, events, status);
+        addedEvents = await GenerateEvents(order, events, status);
         addedEvents = await _eventRepository.AddEvents(addedEvents);
         return addedEvents;
     }
