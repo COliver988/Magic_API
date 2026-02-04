@@ -66,7 +66,7 @@ try
     builder.Services.AddDbContext<SerilogDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Database:Serilog")));
     builder.Services.AddDbContext<HangfireDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Database:Hangfire")));
     builder.Services.AddDbContext<PeepsDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Database:Peeps")));
-    
+
     // Shopfloor
     builder.Services.AddDbContext<ShopfloorHVDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:ShopfloorHV")));
     builder.Services.AddDbContext<ShopfloorPDDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:ShopfloorPD")));
@@ -182,12 +182,12 @@ try
     }
     });
 
-     RecurringJob.AddOrUpdate<UpdateExentaStatusesService>(
-        recurringJobId: "UpdateExentaStatusesService",
-        methodCall: x => x.UpdateExentaStatuses(5),
-        cronExpression: "*/5 * * * *",
-        queue: "datasync",
-        options: new RecurringJobOptions { });
+    //RecurringJob.AddOrUpdate<UpdateExentaStatusesService>(
+    //   recurringJobId: "UpdateExentaStatusesService",
+    //   methodCall: x => x.UpdateExentaStatuses(5),
+    //   cronExpression: "*/5 * * * *",
+    //   queue: "datasync",
+    //   options: new RecurringJobOptions { });
 
     //app.UseHsts();
     app.UseHttpMetrics();

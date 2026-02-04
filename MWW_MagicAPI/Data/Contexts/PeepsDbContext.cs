@@ -15,6 +15,13 @@ public class PeepsDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Explicitly bind dependent navigation on PrintifyOrder to the principal
+        modelBuilder.Entity<PrintifyOrder>()
+            .HasOne(o => o.ShippingMethod)         // <-- explicitly specify navigation
+            .WithMany()                            // principal has no navigation collection
+            .HasForeignKey(o => o.ShippingMethodId)
+            .HasPrincipalKey(sm => sm.Id);
+
         modelBuilder.Entity<PrintifyItem>()
             .HasOne<PrintifyOrder>() // The Item has one Order
             .WithMany(o => o.PrintifyItems) // The Order has many Items

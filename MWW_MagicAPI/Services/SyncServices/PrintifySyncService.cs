@@ -4,6 +4,7 @@ using MWW_Api.Models.Peeps.Printify;
 using MWW_MagicAPI.Data.Contexts;
 using MWW_MagicAPI.Data.Models.DTO;
 using MWW_MagicAPI.Data.RepositoryContracts.Peeps.Printify;
+using Newtonsoft.Json;
 
 namespace MWW_MagicAPI.Services.SyncServices;
 
@@ -81,11 +82,11 @@ public class PrintifySyncService : ISyncService
     {
         List<string> results = new List<string>();
         if (data != null || data.Count > 0)
-        results = data
-            .Select(d => d.VendorPO?.Trim())
-            .Where(s => !string.IsNullOrEmpty(s))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
+            results = data
+                .Select(d => d.VendorPO?.Trim())
+                .Where(s => !string.IsNullOrEmpty(s))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
         return results;
     }
 
@@ -96,13 +97,15 @@ public class PrintifySyncService : ISyncService
         List<SyncDataResults> updated = new();
 
         foreach (UpdateData update in updates)
-            {
-                string status = mappings
-                    .Where(m => m.FS_Status.Equals(update.FS_Status, StringComparison.OrdinalIgnoreCase))
-                    .Select(m => m.PrintifyStatus)
-                    .FirstOrDefault() ?? string.Empty;
+        {
+            string status = mappings
+                .Where(m => m.FS_Status != null)
+                .Where(m => m.FS_Status.Equals(update.FS_Status, StringComparison.OrdinalIgnoreCase))
+                .Select(m => m.PrintifyStatus)
+                .FirstOrDefault() ?? string.Empty;
+            if (status != null)
                 updated.AddRange(await ProcessUpdate(update, status));
-            }
+        }
 
         return updated.Where(r => r != null).ToList();
     }
@@ -114,36 +117,54 @@ public class PrintifySyncService : ISyncService
     /// <param name="status">may be a comma-separated list of statuses</param>
     /// <returns>true if success, false if not</returns>
     /// TODO: if it fails, how do we handle the update later? missed updates?
-    private async Task<List<SyncDataResults>?> ProcessUpdate(UpdateData update, string statuses)
+    private async Task<List<SyncDataResults>> ProcessUpdate(UpdateData update, string statuses)
     {
-        List<SyncDataResults> results = new();
+        var results = new List<SyncDataResults>();
+
+        // normalize and split statuses, skip empties
+        var statusList = statuses
+            .Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(s => s.Trim())
+            .Where(s => !string.IsNullOrEmpty(s))
+            .ToList();
+
+        if (statusList.Count == 0)
+            return results;
+
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            foreach (string status in statuses.Split(',', StringSplitOptions.RemoveEmptyEntries))
+            foreach (var status in statusList)
             {
-                bool added = await _orderRepository.UpdateAsync(update.VendorPO, status);
-                if (added)
+                bool updatedOrder = await _orderRepository.UpdateAsync(update.VendorPO, status);
+                if (!updatedOrder)
+                    continue;
+
+                // create and persist events (repository should save)
+                List<PrintifyEvent> events = await CreateEvents(update, status);
+                if (events != null && events.Count > 0)
                 {
-                    List<PrintifyEvent> events = await CreateEvents(update.VendorPO, status);
-                    await transaction.CommitAsync();
-                    results = events.Select(e => new SyncDataResults
+                    results.AddRange(events.Select(e => new SyncDataResults
                     {
                         VendorPO = update.VendorPO,
                         PO = update.SerialNumber,
                         LnNo = 0,
                         NewStatus = status,
                         RecordType = "PrintifyEvent"
-                    }).ToList();
+                    }));
                 }
             }
+
+            // commit once after all statuses are processed
+            await transaction.CommitAsync();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Error processing Printify order update for PO {update.VendorPO} to status {statuses}");
-            await transaction.RollbackAsync();
-            results = new List<SyncDataResults>();
+            _logger.LogError(ex, $"Error processing Printify order update for PO {update.VendorPO} to statuses {statuses}");
+            try { await transaction.RollbackAsync(); } catch { /* ignore rollback failures but log if desired */ }
+            return new List<SyncDataResults>();
         }
+
         return results;
     }
 
@@ -153,15 +174,16 @@ public class PrintifySyncService : ISyncService
     /// <param name="po"></param>
     /// <param name="status"></param>
     /// <returns></returns>
-    private async Task<List<PrintifyEvent>> CreateEvents(string po, string status)
+    private async Task<List<PrintifyEvent>> CreateEvents(UpdateData update, string status)
     {
+        string po = update.VendorPO;
         List<PrintifyEvent> addedEvents = new List<PrintifyEvent>();
         PrintifyOrder? order = await _orderRepository.GetByOrderPOAsync(po);
         if (order == null) return addedEvents;
         List<PrintifyEvent> events = await _eventRepository.GetAllByOrder(order.Id);
         if (events.Any(e => e.Action == status))
             return addedEvents; // event already exists
-        addedEvents = await GenerateEvents(order, events, status);
+        addedEvents = await GenerateEvents(order, events, status, update.TrackingInfo);
         addedEvents = await _eventRepository.AddEvents(addedEvents);
         return addedEvents;
     }
@@ -173,7 +195,7 @@ public class PrintifySyncService : ISyncService
     /// <param name="existingEvents"></param>
     /// <param name="status"></param>
     /// <returns></returns>
-    private async Task<List<PrintifyEvent>> GenerateEvents(PrintifyOrder order, List<PrintifyEvent> existingEvents, string status)
+    private async Task<List<PrintifyEvent>> GenerateEvents(PrintifyOrder order, List<PrintifyEvent> existingEvents, string status, string? trackingInfo)
     {
         List<PrintifyEvent> events = new List<PrintifyEvent>();
         Array statuses = Enum.GetValues(typeof(PrintifyStatuses));
@@ -193,7 +215,7 @@ public class PrintifySyncService : ISyncService
             });
         }
         if (status == PrintifyStatuses.shipped.ToString())
-            await CheckNotifications(order, events, existingEvents);
+            await CheckNotifications(order, events, existingEvents, trackingInfo);
         return events;
     }
 
@@ -204,17 +226,30 @@ public class PrintifySyncService : ISyncService
     /// <param name="events"></param>
     /// <param name="existingEvents"></param>
     /// <returns></returns>
-    private async Task CheckNotifications(PrintifyOrder order, List<PrintifyEvent> events, List<PrintifyEvent> existingEvents)
+    private async Task CheckNotifications(PrintifyOrder order, List<PrintifyEvent> events, List<PrintifyEvent> existingEvents, string? trackingInfo)
     {
         // find the shipped event we just added
-        var shippedEvent = events.FirstOrDefault(e => e.Action == PrintifyStatuses.shipped.ToString());
+        var shippedEvent = events.FirstOrDefault(e => e.Action == PrintifyStatuses.shipped.ToString() && e.OrderId == order.Id);
         if (shippedEvent == null)
-            shippedEvent = existingEvents.FirstOrDefault(e => e.Action == PrintifyStatuses.shipped.ToString());
+            shippedEvent = existingEvents.FirstOrDefault(e => e.Action == PrintifyStatuses.shipped.ToString() && e.OrderId == order.Id);
         if (shippedEvent != null)
         {
+            // update/add shipping details
+            Dictionary<string, string>? details = await loadShippingInfo(order, trackingInfo);
+            shippedEvent.Details = JsonConvert.SerializeObject(details);
             // send notification to client
             _ = SendNotifications(order, shippedEvent);
         }
+    }
+
+    private async Task<Dictionary<string, string>?> loadShippingInfo(PrintifyOrder order, string? trackingInfo)
+    {
+        string carrier = order.ShippingMethod?.Carrier?.ToLower() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(carrier) || string.IsNullOrWhiteSpace(trackingInfo))
+            return new Dictionary<string, string>();
+        Dictionary<string, string> details = new Dictionary<string, string>() { { "tracking_number", trackingInfo },
+            { "carrier", carrier} };
+        return details;
     }
 
     /// <summary>
@@ -236,7 +271,7 @@ public class PrintifySyncService : ISyncService
     /// <returns>index of enum else -1 if invalid</returns>
     private int FindTargetIndex(Array statuses, string status)
     {
-       	if (!Enum.TryParse<PrintifyStatuses>(status, true, out var parsed)) return -1;
+        if (!Enum.TryParse<PrintifyStatuses>(status, true, out var parsed)) return -1;
         int targetIndex = Array.IndexOf(statuses, Enum.Parse(typeof(PrintifyStatuses), status));
         return targetIndex;
     }

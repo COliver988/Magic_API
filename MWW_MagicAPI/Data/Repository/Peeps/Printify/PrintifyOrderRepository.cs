@@ -20,6 +20,7 @@ public class PrintifyOrderRepository : IPrintifyOrderRepository
         await _context.PrintifyOrders
             .AsNoTracking()
             .Include(o => o.PrintifyItems)
+            .Include(o => o.ShippingMethod)
             .FirstOrDefaultAsync(o => o.UniqueId == po);
 
     /// <summary>
@@ -30,7 +31,6 @@ public class PrintifyOrderRepository : IPrintifyOrderRepository
     /// <returns>true if success else false</returns>
     public async Task<bool> UpdateAsync(string po, string newStatus)
     {
-        // get it into tracked state and include items so we can update them without a second query
         PrintifyOrder? order = await _context.PrintifyOrders
             .Include(o => o.PrintifyItems)
             .FirstOrDefaultAsync(o => o.UniqueId == po);
