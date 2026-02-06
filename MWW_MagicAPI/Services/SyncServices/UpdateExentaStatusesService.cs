@@ -14,6 +14,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     private readonly ISFCTimestampRepository _sfcTimestampRepository;
     private readonly IServiceScopeFactory _scopeFactory;
     private ILogger<UpdateExentaStatusesService> _logger;
+    //private List<string> _shopfloors = new List<string>() { "GM" };
     private List<string> _shopfloors = new List<string>() { "HV", "PD", "TJ", "GM" };
     private List<MilestoneMapper> _milestoneMappings;
     private List<SFCTimestamp> _sfcTimestamps;
@@ -34,9 +35,9 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         _workers = workers ?? Enumerable.Empty<ISyncService>();
     }
 
-    // TODO: track last timestam p in DBs for update span to only update what is new
+    // TODO: track last timestamp in DBs for update span to only update what is new
     [Queue("datasync")]
-    public async Task<int> UpdateExentaStatuses(int minutes)
+    public async Task<List<SyncDataResults>> UpdateExentaStatuses(int minutes)
     {
         // load the milestones mappings
         _milestoneMappings = await _milestoneMapperRepository.GetAllMilestoneMappingsAsync();
@@ -49,7 +50,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         if (data.Count == 0)
         {
             _logger.LogInformation("No Exenta status updates found.");
-            return 0;
+            return null;
         }
 
         using var scope = _scopeFactory.CreateScope();
@@ -60,9 +61,11 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         workerLogger.LogInformation("Resolving scoped sync workers and starting sync");
         var scopedWorkers = scope.ServiceProvider.GetRequiredService<IEnumerable<ISyncService>>();
         var tasks = scopedWorkers.Select(w => w.SyncData(data, _milestoneMappings));
-        int[] results = await Task.WhenAll(tasks);
-        workerLogger.LogInformation($"Sync workers completed; total updates: {results.Sum()}");
-        return results.Sum();
+        List<SyncDataResults>[] results = await Task.WhenAll(tasks);
+        workerLogger.LogInformation($"Sync workers completed; total updates: {results.Sum(a => a.Count)}");
+        
+        // and return a single list of results
+        return results.SelectMany(r => r).ToList();
     }
 
     /// <summary>

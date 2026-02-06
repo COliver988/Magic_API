@@ -37,4 +37,5 @@ public class PrintifyOrder
     public string? Tags { get; set; }
 
     public List<PrintifyItem> PrintifyItems { get; set; } = new();
+    public PrintifyShippingMethod? ShippingMethod { get; set; }
 }

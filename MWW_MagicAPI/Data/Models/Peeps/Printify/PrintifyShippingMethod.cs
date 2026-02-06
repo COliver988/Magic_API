@@ -9,7 +9,7 @@ public class PrintifyShippingMethod
     [Column("id")]
     public long Id { get; set; }
 
-    [Column("Carrier")]
+    [Column("carrier")]
     public string? Carrier { get; set; }
 
     [Column("priority")]
