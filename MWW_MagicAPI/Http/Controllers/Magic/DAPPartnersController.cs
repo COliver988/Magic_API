@@ -32,8 +32,14 @@ public class DAPPartnersController : ControllerBase
 
     // note: po may be a list of POs
     [HttpGet("MoveOrder")]
-    public async Task<List<string>> MoveOrder(string po, string location)
+    public async Task<ActionResult<List<string>>> MoveOrder(string po, string location)
     {
-        return await _dapPartnersRepository.MoveOrderAsync(po, location);
+        var moved = await _dapPartnersRepository.MoveOrderAsync(po, location);
+
+        if (moved == null || moved.Count == 0)
+            return NoContent();
+
+        // Explicitly return JSON (Ok serializes to application/json by default)
+        return Ok(moved);
     }
 }
