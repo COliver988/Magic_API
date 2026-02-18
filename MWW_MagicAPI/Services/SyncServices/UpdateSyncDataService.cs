@@ -42,13 +42,15 @@ public class UpdateSyncDataService : IUpdateSyncDataService
             var rows = await ctx.DapPartners
                 .AsNoTracking()
                 .Where(d => chunk.Contains(d.PO))
-                .Select(d => new { d.PO, d.TKRef1 })
+                .Select(d => new { d.PO, d.TKRef1, d.FS_Status })
                 .ToListAsync();
 
             foreach (var r in rows)
             {
                 if (!string.IsNullOrWhiteSpace(r.PO) && !mapping.ContainsKey(r.PO))
-                    mapping[r.PO] = r.TKRef1 ?? string.Empty;
+                {
+                    mapping[r.PO] = $"{r.TKRef1 ?? string.Empty} : {r.FS_Status ?? string.Empty}";
+                }
             }
         }
 
@@ -57,7 +59,9 @@ public class UpdateSyncDataService : IUpdateSyncDataService
         {
             if (!string.IsNullOrWhiteSpace(item.SerialNumber) && mapping.TryGetValue(item.SerialNumber.Trim(), out var tk))
             {
-                item.VendorPO = tk;
+                string[] split = tk.Split(':');
+                item.VendorPO = split[0].Trim();
+                item.LegacyStatus = split[1].Trim();
             }
         }
 

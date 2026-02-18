@@ -1,9 +1,11 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MWW_Api.Models.Magic;
 using MWW_Api.Models.Peeps.Printify;
+using MWW_Api.Services.Peeps.PrintifyServices;
 using MWW_MagicAPI.Data.Contexts;
 using MWW_MagicAPI.Data.Models.DTO;
 using MWW_MagicAPI.Data.RepositoryContracts.Peeps.Printify;
+using static MWW_Api.Models.Peeps.Printify.PrintifyShared;
 
 namespace MWW_MagicAPI.Services.SyncServices;
 
@@ -13,28 +15,19 @@ public class PrintifySyncService : ISyncService
     private readonly IPrintifyOrderRepository _orderRepository;
     private readonly IPrintifyEventRepository _eventRepository;
     private readonly ILogger<PrintifySyncService> _logger;
-    private readonly HttpClient _httpClient;
-    private enum PrintifyStatuses
-    {
-        created,
-        picked,
-        printed,
-        packaged,
-        shipped,
-        cancelled
-    }
+    private readonly IPrintifyHttpClientService _printifyHttpClient;
 
     public PrintifySyncService(
         PeepsDbContext context,
         IPrintifyOrderRepository orderRepository,
         IPrintifyEventRepository eventRepository,
-        HttpClient httpClient,
+        IPrintifyHttpClientService printifyHttpClient,
         ILogger<PrintifySyncService> logger)
     {
         _context = context;
         _orderRepository = orderRepository;
         _eventRepository = eventRepository;
-        _httpClient = httpClient;
+        _printifyHttpClient = printifyHttpClient;
         _logger = logger;
     }
 
@@ -97,14 +90,12 @@ public class PrintifySyncService : ISyncService
 
         foreach (UpdateData update in updates)
         {
-            MilestoneMapper? mapped = mappings.FirstOrDefault(m =>
-                string.Equals(m.Milestone, update.MilestoneName, StringComparison.OrdinalIgnoreCase) &&
-                !string.IsNullOrEmpty(m.PrintifyStatus));
-
-            if (mapped == null) continue;
-
-            if (await ProcessUpdate(update.VendorPO, mapped.PrintifyStatus!))
-                updated++;
+            string? newStatus  = mappings.FirstOrDefault(s => s.FS_Status == update.LegacyStatus)?.PrintifyStatus!;
+            if (newStatus != null)
+            {
+                if (await ProcessUpdate(update.VendorPO, newStatus))
+                    updated++;
+            }
         }
 
         return updated;
@@ -120,15 +111,19 @@ public class PrintifySyncService : ISyncService
     private async Task<bool> ProcessUpdate(string po, string status)
     {
         bool results = true;
+        string[] statuses = status.Split(',');
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            results = await _orderRepository.UpdateAsync(po, status);
-            if (results)
+            foreach (string newStatus in statuses)
             {
-                results = await CreateEvents(po, status);
-                await transaction.CommitAsync();
+                results = await _orderRepository.UpdateAsync(po, newStatus.Trim());
+                if (results)
+                {
+                    results = await CreateEvents(po, status);
+                }
             }
+            await transaction.CommitAsync();
         }
         catch (Exception ex)
         {
@@ -145,6 +140,7 @@ public class PrintifySyncService : ISyncService
     /// <param name="po"></param>
     /// <param name="status"></param>
     /// <returns></returns>
+    /// TODO: wrap into UOW so that if the notifications fail we roll back?
     private async Task<bool> CreateEvents(string po, string status)
     {
         PrintifyOrder? order = await _orderRepository.GetByOrderPOAsync(po);
@@ -154,7 +150,7 @@ public class PrintifySyncService : ISyncService
             return true; // event already exists
         List<PrintifyEvent> newEvents = GenerateEvents(order, events, status);
         List<PrintifyEvent> addedEvents = await _eventRepository.AddEvents(newEvents);
-        return await SendNotifications(addedEvents);
+        return await SendNotifications(order, addedEvents);
     }
 
     /// <summary>
@@ -163,9 +159,15 @@ public class PrintifySyncService : ISyncService
     /// <param name="addedEvents"></param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-    private async Task<bool> SendNotifications(List<PrintifyEvent> addedEvents)
+    private async Task<bool> SendNotifications(PrintifyOrder order, List<PrintifyEvent> addedEvents)
     {
-        return true;
+        bool results = true;
+        foreach (PrintifyEvent printifyEvent in addedEvents)
+        {
+            results = await _printifyHttpClient.SendPrintifyUpdateAsync(order, printifyEvent.Action);
+            if (!results) break;
+        }
+        return results;
     }
 
     /// <summary>

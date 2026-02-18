@@ -11,6 +11,9 @@ public record UpdateData
 
     // original vendor PO
     public string VendorPO { get; set; }
+
+    // DAP_Partner F5 status
+    public string LegacyStatus { get; set; }
     public DateTime Created { get; set; }
 }
 

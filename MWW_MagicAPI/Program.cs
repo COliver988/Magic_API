@@ -18,6 +18,7 @@ using MWW_MagicAPI.Services.SyncServices;
 using Prometheus;
 using Serilog;
 using System.Text;
+using MWW_Api.Services.Peeps.PrintifyServices;
 
 
 var configuration = new ConfigurationBuilder()
@@ -58,6 +59,12 @@ try
     // Peeps
     builder.Services.AddScoped<IPrintifyOrderRepository, PrintifyOrderRepository>();
     builder.Services.AddScoped<IPrintifyEventRepository, PrintifyEventRepository>();
+    builder.Services.AddHttpClient<IPrintifyHttpClientService, PrintifyHttpClientService>(c =>
+    {
+        c.BaseAddress = new Uri(builder.Configuration["Printify:URL"]);
+        c.DefaultRequestHeaders.Add("X-API-KEY", builder.Configuration["Printify:ApiKey"]);
+        c.DefaultRequestHeaders.Add("Accept", "application/json");
+    });
 
 
     // db context
@@ -182,12 +189,12 @@ try
     }
     });
 
-    // RecurringJob.AddOrUpdate<UpdateExentaStatusesService>(
-    //    recurringJobId: "UpdateExentaStatusesService",
-    //    methodCall: x => x.UpdateExentaStatuses(5),
-    //    cronExpression: "*/10 * * * *",
-    //    queue: "datasync",
-    //    options: new RecurringJobOptions { });
+     RecurringJob.AddOrUpdate<UpdateExentaStatusesService>(
+        recurringJobId: "UpdateExentaStatusesService",
+        methodCall: x => x.UpdateExentaStatuses(5),
+        cronExpression: "*/10 * * * *",
+        queue: "datasync",
+        options: new RecurringJobOptions { });
 
     //app.UseHsts();
     app.UseHttpMetrics();
