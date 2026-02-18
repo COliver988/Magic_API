@@ -31,15 +31,16 @@ public class PrintifySyncService : ISyncService
         _logger = logger;
     }
 
-    public async Task<int> SyncData(
+    public async Task<List<SyncDataResults>> SyncData(
         List<UpdateData> data,
         List<MilestoneMapper> milestoneMappings)
     {
         if (data == null || data.Count == 0)
-            return 0;
+            return new List<SyncDataResults>();
 
         // remove any non-Printify POs
         data = await FilterPrintifyOrders(data);
+
         return await UpdatePrintifyStatuses(data, milestoneMappings);
     }
 
@@ -74,27 +75,36 @@ public class PrintifySyncService : ISyncService
     {
         List<string> results = new List<string>();
         if (data != null || data.Count > 0)
-        results = data
-            .Select(d => d.VendorPO?.Trim())
-            .Where(s => !string.IsNullOrEmpty(s))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
+            results = data
+                .Select(d => d.VendorPO?.Trim())
+                .Where(s => !string.IsNullOrEmpty(s))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
         return results;
     }
 
-    private async Task<int> UpdatePrintifyStatuses(
+    private async Task<List<SyncDataResults>> UpdatePrintifyStatuses(
         List<UpdateData> updates,
         List<MilestoneMapper> mappings)
     {
-        int updated = 0;
+        List<SyncDataResults> updated = new();
 
         foreach (UpdateData update in updates)
         {
-            string? newStatus  = mappings.FirstOrDefault(s => s.FS_Status == update.LegacyStatus)?.PrintifyStatus!;
+            string? newStatus = mappings.FirstOrDefault(s => s.FS_Status == update.FS_Status)?.PrintifyStatus!;
             if (newStatus != null)
             {
                 if (await ProcessUpdate(update.VendorPO, newStatus))
-                    updated++;
+                {
+                    updated.Add(new SyncDataResults
+                    {
+                        VendorPO = update.VendorPO,
+                        PO = update.SerialNumber,
+                        LnNo = 0,
+                        NewStatus = newStatus,
+                        RecordType = "PrintifyEvent"
+                    });
+                }
             }
         }
 
@@ -135,12 +145,11 @@ public class PrintifySyncService : ISyncService
     }
 
     /// <summary>
-    /// create the evebnt for the PO; may have to create earlier events if missing
+    /// create the event for the PO; may have to create earlier events if missing
     /// </summary>
     /// <param name="po"></param>
     /// <param name="status"></param>
     /// <returns></returns>
-    /// TODO: wrap into UOW so that if the notifications fail we roll back?
     private async Task<bool> CreateEvents(string po, string status)
     {
         PrintifyOrder? order = await _orderRepository.GetByOrderPOAsync(po);
@@ -207,7 +216,7 @@ public class PrintifySyncService : ISyncService
     /// <returns>index of enum else -1 if invalid</returns>
     private int FindTargetIndex(Array statuses, string status)
     {
-       	if (!Enum.TryParse<PrintifyStatuses>(status, true, out var parsed)) return -1;
+        if (!Enum.TryParse<PrintifyStatuses>(status, true, out var parsed)) return -1;
         int targetIndex = Array.IndexOf(statuses, Enum.Parse(typeof(PrintifyStatuses), status));
         return targetIndex;
     }

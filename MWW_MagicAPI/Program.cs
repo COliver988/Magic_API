@@ -73,7 +73,7 @@ try
     builder.Services.AddDbContext<SerilogDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Database:Serilog")));
     builder.Services.AddDbContext<HangfireDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Database:Hangfire")));
     builder.Services.AddDbContext<PeepsDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("Database:Peeps")));
-    
+
     // Shopfloor
     builder.Services.AddDbContext<ShopfloorHVDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:ShopfloorHV")));
     builder.Services.AddDbContext<ShopfloorPDDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("Database:ShopfloorPD")));
@@ -208,11 +208,6 @@ try
 
     app.UseHealthChecks("/api/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
     { ResponseWriter = HealthCheckExtensions.WriteResponse });
-
-    Log.Information(builder.Configuration.GetConnectionString("Database:Serilog"));
-    Log.Information(builder.Configuration.GetConnectionString("Database:Magic"));
-    Log.Information(builder.Configuration.GetConnectionString("Database:Exenta"));
-    Log.Information(builder.Configuration.GetConnectionString("Database:ShopfloorHV"));
 
     app.Run();
 }

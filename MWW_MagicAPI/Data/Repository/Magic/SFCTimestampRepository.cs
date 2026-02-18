@@ -36,14 +36,14 @@ public class SFCTimestampRepository : ISFCTimestampRepository
         SFCTimestamp? existing = await ctx.SFCTimestamps.FirstOrDefaultAsync(s => s.Location == sFCTimestamp.Location);
         if (existing != null)
         {
-            existing.LastChecked = DateTime.UtcNow;
+            existing.LastChecked = sFCTimestamp.LastChecked;
             ctx.SFCTimestamps.Update(existing);
             await ctx.SaveChangesAsync();
             return existing;
         }
         else
         {
-            sFCTimestamp.LastChecked = DateTime.UtcNow;
+            sFCTimestamp.LastChecked = sFCTimestamp.LastChecked;
             ctx.SFCTimestamps.Add(sFCTimestamp);
             await ctx.SaveChangesAsync();
             return sFCTimestamp;

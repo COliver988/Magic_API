@@ -31,7 +31,7 @@ public class UpdateSyncDataService : IUpdateSyncDataService
 
         // perform batched queries against the DB to get PO -> TKRef1 mapping
         var mapping = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        const int chunkSize = 500;
+        const int chunkSize = 100;
 
         using var scope = _scopeFactory.CreateScope();
         var ctx = scope.ServiceProvider.GetRequiredService<MagicDbContext>();
@@ -42,14 +42,16 @@ public class UpdateSyncDataService : IUpdateSyncDataService
             var rows = await ctx.DapPartners
                 .AsNoTracking()
                 .Where(d => chunk.Contains(d.PO))
-                .Select(d => new { d.PO, d.TKRef1, d.FS_Status })
+                .Select(d => new { d.PO, d.TKRef1, d.FS_Status, d.FS_TrackingNumber })
                 .ToListAsync();
 
             foreach (var r in rows)
             {
                 if (!string.IsNullOrWhiteSpace(r.PO) && !mapping.ContainsKey(r.PO))
                 {
-                    mapping[r.PO] = $"{r.TKRef1 ?? string.Empty} : {r.FS_Status ?? string.Empty}";
+                    mapping[r.PO] = r.TKRef1 ?? string.Empty;
+                    mapping[$"FS_Status_{r.PO}"] = r.FS_Status ?? string.Empty;
+                    mapping[$"FS_TrackingNumber_{r.PO}"] = r.FS_TrackingNumber ?? string.Empty;
                 }
             }
         }
@@ -57,11 +59,21 @@ public class UpdateSyncDataService : IUpdateSyncDataService
         // apply the mapping back to the input list
         foreach (var item in data)
         {
-            if (!string.IsNullOrWhiteSpace(item.SerialNumber) && mapping.TryGetValue(item.SerialNumber.Trim(), out var tk))
+            if (!string.IsNullOrWhiteSpace(item.SerialNumber))
             {
-                string[] split = tk.Split(':');
-                item.VendorPO = split[0].Trim();
-                item.LegacyStatus = split[1].Trim();
+                var serialKey = item.SerialNumber.Trim();
+                if (mapping.TryGetValue(serialKey, out var tk))
+                {
+                    item.VendorPO = tk;
+                }
+                if (mapping.TryGetValue($"FS_Status_{serialKey}", out var fsStatus))
+                {
+                    item.FS_Status = fsStatus;
+                }
+                if (mapping.TryGetValue($"FS_TrackingNumber_{serialKey}", out var fsTrackingNumber))
+                {
+                    item.TrackingInfo = fsTrackingNumber;
+                }
             }
         }
 
