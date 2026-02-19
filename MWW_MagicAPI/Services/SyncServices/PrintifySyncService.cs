@@ -39,6 +39,7 @@ public class PrintifySyncService : ISyncService
             return new List<SyncDataResults>();
 
         // remove any non-Printify POs
+        var x = data.Where(d => d.VendorPO == "69956e90ec0a72679e04810b").FirstOrDefault();
         data = await FilterPrintifyOrders(data);
 
         return await UpdatePrintifyStatuses(data, milestoneMappings);
@@ -91,6 +92,10 @@ public class PrintifySyncService : ISyncService
 
         foreach (UpdateData update in updates)
         {
+            if (update.VendorPO == "69956e90ec0a72679e04810b")
+            {
+                var hello = "";
+            }
             string? newStatus = mappings.FirstOrDefault(s => s.FS_Status == update.FS_Status)?.PrintifyStatus!;
             if (newStatus != null)
             {
@@ -126,16 +131,24 @@ public class PrintifySyncService : ISyncService
         PrintifyOrder? order = await _orderRepository.GetByOrderPOAsync(po);
         if (order == null) return false;
 
+        // first see if this needs updating; if already set to this status we do not update anything
+        results = await _orderRepository.UpdateAsync(order.UniqueId, statuses.Last());
+        if (!results) return false;
+
         try
         {
             foreach (string newStatus in statuses)
             {
-                List<PrintifyEvent> addedEvents = await CreateEvents(order, status, update);
-                results = await SendNotifications(order, addedEvents);
-                if (results)
-                    results = await _orderRepository.UpdateAsync(order.UniqueId, addedEvents.LastOrDefault()?.Action ?? newStatus.Trim());
+                List<PrintifyEvent> addedEvents = await CreateEvents(order, newStatus, update);
+                //results = await SendNotifications(order, addedEvents);
             }
-            await transaction.CommitAsync();
+            if (results)
+                await transaction.CommitAsync();
+            else
+            {
+                _logger.LogError($"Failed to update Printify order {po} to status {status}");
+                await transaction.RollbackAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -187,6 +200,10 @@ public class PrintifySyncService : ISyncService
     /// <returns></returns>
     private List<PrintifyEvent> GenerateEvents(PrintifyOrder order, List<PrintifyEvent> existingEvents, string status, UpdateData update)
     {
+            if (order.UniqueId == "69956e90ec0a72679e04810b")
+            {
+                var hello = "";
+            }
         List<PrintifyEvent> events = new List<PrintifyEvent>();
         Array statuses = Enum.GetValues(typeof(PrintifyStatuses));
         int targetIndex = FindTargetIndex(statuses, status);
@@ -197,7 +214,7 @@ public class PrintifySyncService : ISyncService
                 continue; // already have this event
             var details = "{}";
             if (status == "shipped")
-                details = new { TrackingNumber = update.TrackingInfo, Carrier = update.FS_Carrier }.ToString() ?? "{}";
+                details = new { TrackingNumber = update.TrackingInfo, Carrier = order.ShippingMethod.Carrier }.ToString() ?? "{}";
             events.Add(new PrintifyEvent()
             {
                 OrderId = order.Id,

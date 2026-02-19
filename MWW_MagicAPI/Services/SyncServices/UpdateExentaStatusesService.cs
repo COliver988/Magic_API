@@ -50,19 +50,21 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         if (data.Count == 0)
         {
             _logger.LogInformation("No Exenta status updates found.");
-            return null;
+            return new List<SyncDataResults>();
         }
 
         using var scope = _scopeFactory.CreateScope();
         IUpdateSyncDataService updateDataService = scope.ServiceProvider.GetRequiredService<IUpdateSyncDataService>();
         // add any other data we need for updates (customer PO, etc)
         data = await updateDataService.UpdateSyncData(data);
-        var workerLogger = scope.ServiceProvider.GetRequiredService<ILogger<IUpdateExentaStatusesService>>();
-        workerLogger.LogInformation("Resolving scoped sync workers and starting sync");
+        //var workerLogger = scope.ServiceProvider.GetRequiredService<ILogger<IUpdateExentaStatusesService>>();
+        //workerLogger.LogInformation("Resolving scoped sync workers and starting sync");
+        _logger.LogInformation("Resolving scoped sync workers and starting sync");
         var scopedWorkers = scope.ServiceProvider.GetRequiredService<IEnumerable<ISyncService>>();
         var tasks = scopedWorkers.Select(w => w.SyncData(data, _milestoneMappings));
         List<SyncDataResults>[] results = await Task.WhenAll(tasks);
-        workerLogger.LogInformation($"Sync workers completed; total updates: {results.Sum(a => a.Count)}");
+        _logger.LogInformation($"Sync workers completed; total updates: {results.Sum(a => a.Count)}");
+        //workerLogger.LogInformation($"Sync workers completed; total updates: {results.Sum(a => a.Count)}");
         
         // and return a single list of results
         return results.SelectMany(r => r).ToList();
