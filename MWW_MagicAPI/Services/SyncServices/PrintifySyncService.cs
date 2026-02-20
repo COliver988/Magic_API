@@ -5,6 +5,7 @@ using MWW_Api.Services.Peeps.PrintifyServices;
 using MWW_MagicAPI.Data.Contexts;
 using MWW_MagicAPI.Data.Models.DTO;
 using MWW_MagicAPI.Data.RepositoryContracts.Peeps.Printify;
+using Newtonsoft.Json;
 using static MWW_Api.Models.Peeps.Printify.PrintifyShared;
 
 namespace MWW_MagicAPI.Services.SyncServices;
@@ -126,7 +127,7 @@ public class PrintifySyncService : ISyncService
     private async Task<bool> ProcessUpdate(string po, string status, UpdateData update)
     {
         bool results = true;
-        string[] statuses = status.Split(',');
+        string[] statuses = status.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
         await using var transaction = await _context.Database.BeginTransactionAsync();
         PrintifyOrder? order = await _orderRepository.GetByOrderPOAsync(po);
         if (order == null) return false;
@@ -140,7 +141,7 @@ public class PrintifySyncService : ISyncService
             foreach (string newStatus in statuses)
             {
                 List<PrintifyEvent> addedEvents = await CreateEvents(order, newStatus, update);
-                //results = await SendNotifications(order, addedEvents);
+                results = await SendNotifications(order, addedEvents);
             }
             if (results)
                 await transaction.CommitAsync();
@@ -200,10 +201,6 @@ public class PrintifySyncService : ISyncService
     /// <returns></returns>
     private List<PrintifyEvent> GenerateEvents(PrintifyOrder order, List<PrintifyEvent> existingEvents, string status, UpdateData update)
     {
-            if (order.UniqueId == "69956e90ec0a72679e04810b")
-            {
-                var hello = "";
-            }
         List<PrintifyEvent> events = new List<PrintifyEvent>();
         Array statuses = Enum.GetValues(typeof(PrintifyStatuses));
         int targetIndex = FindTargetIndex(statuses, status);
@@ -214,7 +211,14 @@ public class PrintifySyncService : ISyncService
                 continue; // already have this event
             var details = "{}";
             if (status == "shipped")
-                details = new { TrackingNumber = update.TrackingInfo, Carrier = order.ShippingMethod.Carrier }.ToString() ?? "{}";
+            {
+                var shippingDetails = new 
+                { 
+                    TrackingNumber = update.TrackingInfo, 
+                    Carrier = order.ShippingMethod.Carrier 
+                };
+                details = JsonConvert.SerializeObject(shippingDetails);
+            }
             events.Add(new PrintifyEvent()
             {
                 OrderId = order.Id,
