@@ -281,6 +281,7 @@ public class MagicSyncService : ISyncService
                 existingLog.CUST_PO_NO == newLog.CUST_PO_NO &&
                 existingLog.CO_NUMBER == newLog.CO_NUMBER &&
                 existingLog.USERID == newLog.USERID &&
+                existingLog.TrackNotes == newLog.TrackNotes &&
                 existingLog.SHIP_VIA == newLog.SHIP_VIA))
             .ToList();
         return dedupedRecords;

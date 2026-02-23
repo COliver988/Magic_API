@@ -211,14 +211,17 @@ public class PrintifySyncService : ISyncService
                 continue; // already have this event
             var details = "{}";
             if (status == "shipped")
-            {
-                var shippingDetails = new 
-                { 
-                    TrackingNumber = update.TrackingInfo, 
-                    Carrier = order.ShippingMethod.Carrier 
-                };
-                details = JsonConvert.SerializeObject(shippingDetails);
-            }
+                if (string.IsNullOrEmpty(update.TrackingInfo))
+                    continue;
+                else
+                {
+                    var shippingDetails = new
+                    {
+                        TrackingNumber = update.TrackingInfo,
+                        Carrier = order.ShippingMethod.Carrier
+                    };
+                    details = JsonConvert.SerializeObject(shippingDetails);
+                }
             events.Add(new PrintifyEvent()
             {
                 OrderId = order.Id,
