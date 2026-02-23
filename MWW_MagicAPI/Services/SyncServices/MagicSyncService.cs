@@ -2,6 +2,7 @@
 using MWW_Api.Config;
 using MWW_Api.Models.Magic;
 using MWW_MagicAPI.Data.Models.DTO;
+using Newtonsoft.Json;
 using Prometheus;
 
 namespace MWW_MagicAPI.Services.SyncServices;
@@ -46,7 +47,7 @@ public class MagicSyncService : ISyncService
             await semaphore.WaitAsync();
             try
             {
-                LegacyData? current = await LoadLegacyData(toUpdate.SerialNumber);
+                LegacyData? current = await LoadLegacyData(toUpdate.SerialNumber, toUpdate.AlphaNumId);
                 if (current != null)
                 {
                     int currentIdx = Array.FindIndex(_progression, s => string.Equals(s, current.Status, StringComparison.OrdinalIgnoreCase));
@@ -88,7 +89,7 @@ public class MagicSyncService : ISyncService
     /// </summary>
     /// <param name="po"></param>
     /// <returns></returns>
-    public async Task<LegacyData?> LoadLegacyData(string po)
+    public async Task<LegacyData?> LoadLegacyData(string po, string alphanumId)
     {
         using var timer = HistogramMetrics.LegacyLoadDuration
             .WithLabels(nameof(LoadLegacyData))
@@ -112,7 +113,7 @@ public class MagicSyncService : ISyncService
                 Status = dpd.Status,
                 UserId = dp.CC_APPROVED,
                 LineNumber = dpd.Ln_No.ToString(),
-                BatchSeq = dpd.BatchID + "_" + dpd.PrintOrder
+                BatchSeq = alphanumId
             };
 
         return await query.FirstOrDefaultAsync();
@@ -240,11 +241,15 @@ public class MagicSyncService : ISyncService
                 CreateDate = DateTime.UtcNow,
                 LOG_DATE = DateTime.UtcNow.ToString("MMM dd yyyy h:mmtt"),
                 SYSTEM_NAME = "MWWMagicAPI",
+                TrackNotes = entry.BatchSeq
             }).ToList();
 
             batchRecords = await DedupLegacy(batchRecords, magicContext);
 
             magicContext.UPCLogIns.AddRange(batchRecords);
+            var json = JsonConvert.SerializeObject(batchRecords, Formatting.Indented);
+            _logger.LogInformation("UPC log records prepared:\n{Json}", json);
+
 
             return updateData.Select(d => new SyncDataResults
             {
