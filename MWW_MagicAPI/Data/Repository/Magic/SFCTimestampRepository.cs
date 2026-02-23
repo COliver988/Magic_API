@@ -27,26 +27,46 @@ public class SFCTimestampRepository : ISFCTimestampRepository
     public async Task<SFCTimestamp> UpdateAsync(SFCTimestamp sFCTimestamp)
     {
         if (sFCTimestamp == null) throw new ArgumentNullException(nameof(sFCTimestamp));
-        if (string.IsNullOrWhiteSpace(sFCTimestamp.Location)) throw new ArgumentException("Location is required", nameof(sFCTimestamp));
 
         using var scope = _scopeFactory.CreateScope();
         var ctx = scope.ServiceProvider.GetRequiredService<MagicDbContext>();
 
-        // attempt to find existing record in new scoped context
-        SFCTimestamp? existing = await ctx.SFCTimestamps.FirstOrDefaultAsync(s => s.Location == sFCTimestamp.Location);
+        // 1. Try to find existing
+        var existing = await ctx.SFCTimestamps.FirstOrDefaultAsync(s => s.Location == sFCTimestamp.Location);
+
         if (existing != null)
         {
             existing.LastChecked = sFCTimestamp.LastChecked;
             ctx.SFCTimestamps.Update(existing);
-            await ctx.SaveChangesAsync();
-            return existing;
         }
         else
         {
-            sFCTimestamp.LastChecked = sFCTimestamp.LastChecked;
+            // 2. Add as new
             ctx.SFCTimestamps.Add(sFCTimestamp);
-            await ctx.SaveChangesAsync();
-            return sFCTimestamp;
         }
+
+        try
+        {
+            await ctx.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // 3. RACE CONDITION HANDLER: 
+            // If another parallel thread inserted this location between our 'find' and 'save'
+            var concurrentRecord = await ctx.SFCTimestamps
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.Location == sFCTimestamp.Location);
+
+            if (concurrentRecord != null)
+            {
+                concurrentRecord.LastChecked = sFCTimestamp.LastChecked;
+                ctx.SFCTimestamps.Update(concurrentRecord);
+                await ctx.SaveChangesAsync();
+                return concurrentRecord;
+            }
+            throw; // Re-throw if it was a different DB error
+        }
+
+        return existing ?? sFCTimestamp;
     }
 }

@@ -37,6 +37,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
 
     // TODO: track last timestamp in DBs for update span to only update what is new
     [Queue("datasync")]
+    [DisableConcurrentExecution(timeoutInSeconds: 600)]
     public async Task<List<SyncDataResults>> UpdateExentaStatuses(int minutes)
     {
         // load the milestones mappings

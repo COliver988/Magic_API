@@ -189,6 +189,7 @@ try
     }
     });
 
+    // still in test mode for dev testing
     if (app.Environment.IsDevelopment())
     {
        RecurringJob.AddOrUpdate<UpdateExentaStatusesService>(
