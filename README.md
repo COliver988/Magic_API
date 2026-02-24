@@ -17,7 +17,7 @@ Pulled to its own application from Peeps 2.
 Currently a manual process. On your local machine:
 1. verify you have the current version of the `main` branch
 2. at the application directory, on the command line: `dotnet publish -c Release`
-3. copy the bin/Release/net8.0/publish directory
+3. copy the bin/Release/net10/publish directory
 4. on the server, go to IIS and turn off the magic API site
 5. replace the files in c:\inetpub\MWWApplications\MWWMagic_API with the new publish contents
 6. restart the web service
