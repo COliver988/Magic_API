@@ -21,6 +21,8 @@ public class MagicSyncService : ISyncService
         "InPB", "ToSew", "InSew", "ToCircleTack", "ToShip", "cancel"
     };
 
+    public bool IsActive => true;
+
     public MagicSyncService(
         ILogger<MagicSyncService> logger,
         IServiceScopeFactory serviceScopeFactory)

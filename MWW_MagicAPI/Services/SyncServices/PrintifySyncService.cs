@@ -32,6 +32,8 @@ public class PrintifySyncService : ISyncService
         _logger = logger;
     }
 
+    public bool IsActive => false;
+
     public async Task<List<SyncDataResults>> SyncData(
         List<UpdateData> data,
         List<MilestoneMapper> milestoneMappings)

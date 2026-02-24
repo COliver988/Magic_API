@@ -59,7 +59,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         // add any other data we need for updates (customer PO, etc)
         data = await updateDataService.UpdateSyncData(data);
         _logger.LogInformation("Resolving scoped sync workers and starting sync");
-        var scopedWorkers = scope.ServiceProvider.GetRequiredService<IEnumerable<ISyncService>>();
+        var scopedWorkers = scope.ServiceProvider.GetRequiredService<IEnumerable<ISyncService>>().Where(s => s.IsActive);
         var tasks = scopedWorkers.Select(w => w.SyncData(data, _milestoneMappings));
         List<SyncDataResults>[] results = await Task.WhenAll(tasks);
         _logger.LogInformation($"Sync workers completed; total updates: {results.Sum(a => a.Count)}");
