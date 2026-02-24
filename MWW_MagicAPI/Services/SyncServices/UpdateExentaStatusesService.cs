@@ -148,8 +148,16 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         return timestamp?.LastChecked ?? DateTime.UtcNow.AddMinutes(-minutes);
     }
 
+    /// <summary>
+    /// update the last timestamp for the specified Shopfloor DB
+    /// only called if we had any data; no data for this DB should not call this method
+    /// </summary>
+    /// <param name="shopfloorCode">shoploor code</param>
+    /// <param name="lastCheck">last timestamp of the last record</param>
+    /// <returns></returns>
     public async Task UpdateSFCTimestamp(string shopfloorCode, DateTime lastCheck)
     {
+        lastCheck = lastCheck.AddMilliseconds(1); // add a bit so we don't reprocess the same record if no updates
         SFCTimestamp? timestamp = _sfcTimestamps.FirstOrDefault(s => s.Location == shopfloorCode);
         if (timestamp != null)
         {

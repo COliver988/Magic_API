@@ -157,7 +157,8 @@ public class MagicSyncService : ISyncService
             // 4. Commit the transaction to the database
             //await transaction.CommitAsync();
 
-            _logger.LogInformation("Successfully updated {Count} records in Magic DB.", detailsUpdated);
+            var json = JsonConvert.SerializeObject(detailsUpdated, Formatting.Indented);
+            _logger.LogInformation("Successfully updated {Count} records in Magic DB.", json);
             return results;
         }
         catch (Exception ex)
@@ -239,9 +240,9 @@ public class MagicSyncService : ISyncService
                 USERID = entry.Status.ToUpper(),
                 SHIP_VIA = entry.LineNumber,
                 CreateDate = DateTime.UtcNow,
-                LOG_DATE = DateTime.UtcNow.ToString("MMM dd yyyy h:mmtt"),
+                LOG_DATE = DateTime.Now.ToString("MMM dd yyyy h:mmtt"),
                 SYSTEM_NAME = "MWWMagicAPI",
-                TrackNotes = entry.BatchSeq
+                TrackNotes = $"{entry.BatchSeq} => {entry.Status}"
             }).ToList();
 
             batchRecords = await DedupLegacy(batchRecords, magicContext);
