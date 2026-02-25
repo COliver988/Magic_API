@@ -154,10 +154,10 @@ public class MagicSyncService : ISyncService
             // 3. Persist all changes to the database at once
             // EF Core wraps SaveChangesAsync in its own internal transaction, 
             // but BeginTransactionAsync ensures nothing is committed until we say so.
-            //await magicContext.SaveChangesAsync();
+            await magicContext.SaveChangesAsync();
 
             // 4. Commit the transaction to the database
-            //await transaction.CommitAsync();
+            await transaction.CommitAsync();
 
             var json = JsonConvert.SerializeObject(detailsUpdated, Formatting.Indented);
             _logger.LogInformation("Successfully updated {Count} records in Magic DB.", json);

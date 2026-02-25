@@ -189,16 +189,12 @@ try
     }
     });
 
-    // still in test mode for dev testing
-    if (app.Environment.IsDevelopment())
-    {
-       RecurringJob.AddOrUpdate<UpdateExentaStatusesService>(
-          recurringJobId: "UpdateExentaStatusesService",
-          methodCall: x => x.UpdateExentaStatuses(15),
-          cronExpression: "*/10 * * * *",
-          queue: "datasync",
-          options: new RecurringJobOptions { });
-    }
+    RecurringJob.AddOrUpdate<UpdateExentaStatusesService>(
+       recurringJobId: "UpdateExentaStatusesService",
+       methodCall: x => x.UpdateExentaStatuses(15),
+       cronExpression: "*/10 * * * *",
+       queue: "datasync",
+       options: new RecurringJobOptions { });
 
     //app.UseHsts();
     app.UseHttpMetrics();
