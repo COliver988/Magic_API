@@ -14,7 +14,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     private readonly ISFCTimestampRepository _sfcTimestampRepository;
     private readonly IServiceScopeFactory _scopeFactory;
     private ILogger<UpdateExentaStatusesService> _logger;
-    private List<string> _shopfloors = new List<string>() { "GM" };
+    private List<string> _shopfloors = new List<string>() { "HV" };
     //private List<string> _shopfloors = new List<string>() { "HV", "PD", "TJ", "GM" };
     private List<MilestoneMapper> _milestoneMappings;
     private List<SFCTimestamp> _sfcTimestamps;
@@ -116,7 +116,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
                 on po.ProductId equals wo.ProductId
             join t in context.Transactions.AsNoTracking()
                 on new { wo.Id, po.OperationId } equals new { Id = t.WorkorderId, t.OperationId }
-            where t.DateTime >= cutoff
+            where t.DateTime > cutoff
             join u in context.Units.AsNoTracking()
                 on t.UnitId equals u.Id
             orderby t.Created descending
@@ -157,7 +157,6 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     /// <returns></returns>
     public async Task UpdateSFCTimestamp(string shopfloorCode, DateTime lastCheck)
     {
-        lastCheck = lastCheck.AddMilliseconds(1); // add a bit so we don't reprocess the same record if no updates
         SFCTimestamp? timestamp = _sfcTimestamps.FirstOrDefault(s => s.Location == shopfloorCode);
         if (timestamp != null)
         {

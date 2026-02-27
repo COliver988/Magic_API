@@ -154,10 +154,10 @@ public class MagicSyncService : ISyncService
             // 3. Persist all changes to the database at once
             // EF Core wraps SaveChangesAsync in its own internal transaction, 
             // but BeginTransactionAsync ensures nothing is committed until we say so.
-            await magicContext.SaveChangesAsync();
+            //await magicContext.SaveChangesAsync();
 
             // 4. Commit the transaction to the database
-            await transaction.CommitAsync();
+            //await transaction.CommitAsync();
 
             var json = JsonConvert.SerializeObject(detailsUpdated, Formatting.Indented);
             _logger.LogInformation("Successfully updated {Count} records in Magic DB.", json);
@@ -176,51 +176,48 @@ public class MagicSyncService : ISyncService
     {
         List<LegacyData> updatedDetails = new();
 
-        // Build a PO -> target status map for fast lookup
-        var poToTarget = updateOrders
-            .GroupBy(u => u.Po)
-            .ToDictionary(g => g.Key, g => g.First().Status, StringComparer.OrdinalIgnoreCase);
+        // 1. Create a composite lookup key: "PO-LineNumber"
+        // This prevents updating Line 2 when only Line 1 was intended.
+        var updateLookup = updateOrders
+            .ToDictionary(
+                u => $"{u.Po}_{u.LnNo}",
+                u => u,
+                StringComparer.OrdinalIgnoreCase
+            );
 
         try
         {
-            // Fetch all matching DyePrintDetails in a single query
-            var pos = poToTarget.Keys.ToList();
+            // 2. Extract POs to minimize the initial fetch
+            var pos = updateOrders.Select(u => u.Po).Distinct().ToList();
+
+            // 3. Fetch records from DB
             var details = await magicContext.DyePrintDetails
                 .Where(d => pos.Contains(d.PO))
                 .ToListAsync();
 
-            if (details.Count == 0)
-                return updatedDetails;
+            if (details.Count == 0) return updatedDetails;
 
-            // Update each entity's status (and any audit columns if present)
-            var utcNow = DateTime.UtcNow;
             foreach (var detail in details)
             {
-                if (!poToTarget.TryGetValue(detail.PO, out var targetStatus))
-                    continue;
+                // 4. Match using the composite key (PO + Line Number)
+                string key = $"{detail.PO}_{detail.Ln_No}";
 
-                // Only set when different — avoids unnecessary writes
-                if (!string.Equals(detail.Status, targetStatus, StringComparison.Ordinal))
+                if (updateLookup.TryGetValue(key, out var targetUpdate))
                 {
-                    detail.Status = targetStatus;
-                    updatedDetails.Add(updateOrders.FirstOrDefault(u =>
-                        string.Equals(u.Po, detail.PO, StringComparison.OrdinalIgnoreCase) &&
-                        u.LnNo == detail.Ln_No));
+                    // 5. Only update if the status is actually changing
+                    if (!string.Equals(detail.Status, targetUpdate.Status, StringComparison.OrdinalIgnoreCase))
+                    {
+                        detail.Status = targetUpdate.Status;
+                        updatedDetails.Add(targetUpdate);
+                    }
                 }
             }
 
-            // Get orders that were NOT updated
-            updatedDetails = updatedDetails.Where(d => d != null).ToList();
-            var notUpdatedOrders = updateOrders
-                .Where(order => !updatedDetails.Any(detail =>
-                    string.Equals(detail.Po, order.Po, StringComparison.OrdinalIgnoreCase) &&
-                    detail.LnNo == order.LnNo))
-                .ToList();
-            return updatedDetails.Where(d => d != null).ToList();
+            return updatedDetails;
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Error updating DyePrintDetails: {ex.Message}");
+            _logger.LogError(ex, "Error updating DyePrintDetails specifically by Line Number.");
             return new List<LegacyData>();
         }
     }
@@ -241,7 +238,7 @@ public class MagicSyncService : ISyncService
                 CUST_ID = entry.UserId,
                 USERID = entry.Status.ToUpper(),
                 SHIP_VIA = entry.LineNumber,
-                CreateDate = DateTime.UtcNow,
+                CreateDate = DateTime.Now,
                 LOG_DATE = DateTime.Now.ToString("MMM dd yyyy h:mmtt"),
                 SYSTEM_NAME = "MWWMagicAPI",
                 TrackNotes = $"{entry.BatchSeq} => {entry.Status}"
