@@ -108,18 +108,19 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         DateTime cutoff = GetLastCheckedUtc(minutes, shopfloorCode);
 
         var query =
-            from m in context.MileStones.AsNoTracking()
-            where m.Name != "READY"
-            join po in context.ProductOperations.AsNoTracking()
-                on m.Id equals po.MileStoneId
-            join wo in context.WorkOrders.AsNoTracking()
-                on po.ProductId equals wo.ProductId
+            from u in context.Units.AsNoTracking()
             join t in context.Transactions.AsNoTracking()
-                on new { wo.Id, po.OperationId } equals new { Id = t.WorkorderId, t.OperationId }
-            where t.DateTime > cutoff
-            join u in context.Units.AsNoTracking()
-                on t.UnitId equals u.Id
-            orderby t.Created descending
+                on u.Id equals t.UnitId into ut
+            from t in ut.DefaultIfEmpty()              // translates the LEFT JOIN
+            join wo in context.WorkOrders.AsNoTracking()
+                on t.WorkorderId equals wo.Id
+            join po in context.ProductOperations.AsNoTracking()
+                on new { OperationId = t.OperationId, wo.ProductId }
+                equals new { po.OperationId, po.ProductId }
+            join m in context.MileStones.AsNoTracking()
+                on po.MileStoneId equals m.Id
+            where m.Name != "READY" && t.DateTime > cutoff
+            orderby t.Created descending              // optional – matches your original SQL
             select new UpdateData
             {
                 AlphaNumId = u.AlphaNumId,
@@ -133,7 +134,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         try
         {
             List<UpdateData> results = await query.Distinct().ToListAsync();
-            return results;
+            return results.GroupBy(x => x.AlphaNumId).Select(g => g.First()).ToList(); // ensure distinct by SerialNumber   
         }
         catch (Exception ex)
         {
