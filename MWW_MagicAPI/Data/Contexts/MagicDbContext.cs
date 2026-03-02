@@ -34,7 +34,7 @@ public class MagicDbContext : DbContext
         modelBuilder.Entity<WebAPI_Customer>().ToTable("WebAPI_Customers", schema: "dbo").HasNoKey();
         modelBuilder.Entity<DyePrintDetails>()
            .ToTable("dyePrintDetails", schema: "dbo")
-           .HasKey(d => new { d.CO_Number, d.Ln_No });
+           .HasKey(d => new { d.PO, d.Ln_No });
         modelBuilder.Entity<ExentaPOLinesWithAckNo>().ToTable("Exenta_PO_Lines_with_AckNo", schema: "dbo").HasNoKey();
         modelBuilder.Entity<DyeItemAttributes>().ToTable("dyeitem_Attributes", schema: "dbo").HasNoKey();
         modelBuilder.Entity<DyePrintHeader>().ToTable("dyePrintHeader", schema: "dbo").HasNoKey();
