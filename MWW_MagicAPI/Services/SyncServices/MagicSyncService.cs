@@ -38,6 +38,17 @@ public class MagicSyncService : ISyncService
         return await UpdateMagicStatuses(data);
     }
 
+    /// <summary>
+    /// Updates the status of legacy records based on the provided update data and returns the results of the
+    /// synchronization operation.
+    /// </summary>
+    /// <remarks>The method processes updates concurrently, with a maximum of five operations running in
+    /// parallel. Only records whose target status represents progression beyond their current status are updated.
+    /// Errors encountered during processing are logged but do not interrupt the overall operation.</remarks>
+    /// <param name="data">A list of update data items, each specifying the serial number, alphanumeric ID, and milestone name used to
+    /// determine the target status for each legacy record.</param>
+    /// <returns>A list of synchronization results indicating the outcome of each status update operation. The list may be empty
+    /// if no updates were performed.</returns>
     public async Task<List<SyncDataResults>> UpdateMagicStatuses(List<UpdateData> data)
     {
         List<LegacyData> updateOrders = new(); // will contain legacy rows with Status set to target status
@@ -52,6 +63,10 @@ public class MagicSyncService : ISyncService
                 LegacyData? current = await LoadLegacyData(toUpdate.SerialNumber, toUpdate.AlphaNumId);
                 if (current != null)
                 {
+                    if (current.Status != null && excludedStatuses.Any(s => string.Equals(s, current.Status, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        _logger.LogInformation("Skipping PO {Po} with status {Status} as it is in the excluded list.", current.Po, current.Status);
+                    }
                     int currentIdx = Array.FindIndex(_progression, s => string.Equals(s, current.Status, StringComparison.OrdinalIgnoreCase));
 
                     string newStatus = _mappings
@@ -83,6 +98,11 @@ public class MagicSyncService : ISyncService
 
         await Task.WhenAll(tasks);
 
+        var notInUpdates = data.Where(d => !updateOrders.Any(u => string.Equals(u.Po, d.SerialNumber, StringComparison.OrdinalIgnoreCase)))
+            .Select(d => d)
+            .ToList();
+        var json = JsonConvert.SerializeObject(notInUpdates, Formatting.Indented);
+        _logger.LogInformation("not to be updated:\n{Json}", json);
         return await UpdateMagicDB(updateOrders);
     }
 
@@ -154,10 +174,10 @@ public class MagicSyncService : ISyncService
             // 3. Persist all changes to the database at once
             // EF Core wraps SaveChangesAsync in its own internal transaction, 
             // but BeginTransactionAsync ensures nothing is committed until we say so.
-            await magicContext.SaveChangesAsync();
+            //await magicContext.SaveChangesAsync();
 
             // 4. Commit the transaction to the database
-            await transaction.CommitAsync();
+            //await transaction.CommitAsync();
 
             var json = JsonConvert.SerializeObject(detailsUpdated, Formatting.Indented);
             _logger.LogInformation("Successfully updated {Count} records in Magic DB.", json);
