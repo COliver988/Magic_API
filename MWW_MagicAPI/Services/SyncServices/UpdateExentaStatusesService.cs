@@ -119,7 +119,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
                 equals new { po.OperationId, po.ProductId }
             join m in context.MileStones.AsNoTracking()
                 on po.MileStoneId equals m.Id
-            where m.Name != "READY" && t.DateTime > cutoff
+            where m.Name.ToLower() != "ready" && t.DateTime > cutoff
             orderby t.Created descending              // optional – matches your original SQL
             select new UpdateData
             {

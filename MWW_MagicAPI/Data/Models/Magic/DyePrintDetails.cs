@@ -7,7 +7,7 @@ public class DyePrintDetails
     public required string PO { get; set; }
     public string? TemplateID { get; set; }
     public string? PrinterID { get; set; }
-    public string? Status { get; set; }
+    public required string Status { get; set; }
     public string? JobTicketFileName { get; set; }
     public DateTime? PrintedDate { get; set; }
     public string? BatchID { get; set; }

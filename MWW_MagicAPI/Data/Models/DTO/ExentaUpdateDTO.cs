@@ -27,6 +27,7 @@ public record LegacyData
     public string BatchSeq { get; set; }
     public string UserId { get; set; }
     public string LineNumber { get; set; }
+    public string AlphaNumId { get; set; }
 }
 
 public record SyncDataResults

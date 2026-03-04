@@ -12,7 +12,8 @@ public class MagicSyncService : ISyncService
     private readonly ILogger<MagicSyncService> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private List<MilestoneMapper> _mappings;
-    private List<string> excludedStatuses = new List<string>() { "shipped", "cancelled", "cancel", "ready", "pods", "toqc", "stship" };
+    // note: last time checked this was the proper casing
+    private List<string> excludedStatuses = new List<string>() { "shipped", "Cancelled", "cancel", "READY", "PODS", "ToQC", "ToShip" };
     string[] _progression = new string[]
     {
         "printed", "Printed", "PRINTED", "ToTenter", "AtTenter",
@@ -120,13 +121,15 @@ public class MagicSyncService : ISyncService
         using var scope = _serviceScopeFactory.CreateScope();
         var magicContext = scope.ServiceProvider.GetRequiredService<MagicDbContext>();
 
-        var loweredStatuses = excludedStatuses.Select(s => s.ToLower()).ToList();
+        string batchID = alphanumId.Split('_')[0];
+        bool pl = int.TryParse(alphanumId.Split('_')[1], out int printedOrder);
 
         var query =
             from dpd in magicContext.DyePrintDetails.AsNoTracking()
-            where dpd.PO == po && !loweredStatuses.Contains(dpd.Status.ToLower())
+            where dpd.PO == po && !excludedStatuses.Contains(dpd.Status)
+              && dpd.BatchID == batchID && dpd.printedOrder == printedOrder
             join dp in magicContext.DapPartners.AsNoTracking().Where(x => x.PO == po)
-                on dpd.PO equals dp.PO
+             on dpd.PO equals dp.PO
             select new LegacyData
             {
                 Po = dpd.PO,
@@ -135,7 +138,8 @@ public class MagicSyncService : ISyncService
                 Status = dpd.Status,
                 UserId = dp.CC_APPROVED,
                 LineNumber = dpd.Ln_No.ToString(),
-                BatchSeq = alphanumId
+                AlphaNumId = alphanumId,
+                BatchSeq = $"{dpd.BatchID}_{dpd.printedOrder}"
             };
 
         return await query.FirstOrDefaultAsync();
