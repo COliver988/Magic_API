@@ -14,11 +14,10 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     private readonly ISFCTimestampRepository _sfcTimestampRepository;
     private readonly IServiceScopeFactory _scopeFactory;
     private ILogger<UpdateExentaStatusesService> _logger;
-    //private List<string> _shopfloors = new List<string>() { "HV" };
-    private List<string> _shopfloors = new List<string>() { "HV", "PD", "TJ", "GM" };
+    private List<string> _shopfloors = new List<string>() { "HV" };
+    //private List<string> _shopfloors = new List<string>() { "HV", "PD", "TJ", "GM" };
     private List<MilestoneMapper> _milestoneMappings;
     private List<SFCTimestamp> _sfcTimestamps;
-    private readonly IEnumerable<ISyncService> _workers;
 
     public UpdateExentaStatusesService(IShopfloorDbContextFactory contextFactory,
         ILogger<UpdateExentaStatusesService> logger,
@@ -32,7 +31,6 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         _sfcTimestampRepository = sfcRepo;
         _scopeFactory = serviceScopeFactory;
         _logger = logger;
-        _workers = workers ?? Enumerable.Empty<ISyncService>();
     }
 
     // TODO: track last timestamp in DBs for update span to only update what is new

@@ -99,11 +99,6 @@ public class MagicSyncService : ISyncService
 
         await Task.WhenAll(tasks);
 
-        var notInUpdates = data.Where(d => !updateOrders.Any(u => string.Equals(u.Po, d.SerialNumber, StringComparison.OrdinalIgnoreCase)))
-            .Select(d => d)
-            .ToList();
-        var json = JsonConvert.SerializeObject(notInUpdates, Formatting.Indented);
-        _logger.LogInformation("not to be updated:\n{Json}", json);
         return await UpdateMagicDB(updateOrders);
     }
 
@@ -178,10 +173,10 @@ public class MagicSyncService : ISyncService
             // 3. Persist all changes to the database at once
             // EF Core wraps SaveChangesAsync in its own internal transaction, 
             // but BeginTransactionAsync ensures nothing is committed until we say so.
-            //await magicContext.SaveChangesAsync();
+            await magicContext.SaveChangesAsync();
 
             // 4. Commit the transaction to the database
-            //await transaction.CommitAsync();
+            await transaction.CommitAsync();
 
             var json = JsonConvert.SerializeObject(detailsUpdated, Formatting.Indented);
             _logger.LogInformation("Successfully updated {Count} records in Magic DB.", json);
@@ -261,6 +256,7 @@ public class MagicSyncService : ISyncService
                 CO_NUMBER = entry.Co,
                 CUST_ID = entry.UserId,
                 USERID = entry.Status.ToUpper(),
+                REQ_DATE = entry.Status,
                 SHIP_VIA = entry.LineNumber,
                 CreateDate = DateTime.Now,
                 LOG_DATE = DateTime.Now.ToString("MMM dd yyyy h:mmtt"),
