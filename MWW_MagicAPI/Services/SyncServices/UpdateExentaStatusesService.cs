@@ -14,11 +14,10 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     private readonly ISFCTimestampRepository _sfcTimestampRepository;
     private readonly IServiceScopeFactory _scopeFactory;
     private ILogger<UpdateExentaStatusesService> _logger;
-    //private List<string> _shopfloors = new List<string>() { "GM" };
+    //private List<string> _shopfloors = new List<string>() { "HV" };
     private List<string> _shopfloors = new List<string>() { "HV", "PD", "TJ", "GM" };
     private List<MilestoneMapper> _milestoneMappings;
     private List<SFCTimestamp> _sfcTimestamps;
-    private readonly IEnumerable<ISyncService> _workers;
 
     public UpdateExentaStatusesService(IShopfloorDbContextFactory contextFactory,
         ILogger<UpdateExentaStatusesService> logger,
@@ -32,11 +31,11 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         _sfcTimestampRepository = sfcRepo;
         _scopeFactory = serviceScopeFactory;
         _logger = logger;
-        _workers = workers ?? Enumerable.Empty<ISyncService>();
     }
 
     // TODO: track last timestamp in DBs for update span to only update what is new
     [Queue("datasync")]
+    [DisableConcurrentExecution(timeoutInSeconds: 600)]
     public async Task<List<SyncDataResults>> UpdateExentaStatuses(int minutes)
     {
         // load the milestones mappings
@@ -50,19 +49,18 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         if (data.Count == 0)
         {
             _logger.LogInformation("No Exenta status updates found.");
-            return null;
+            return new List<SyncDataResults>();
         }
 
         using var scope = _scopeFactory.CreateScope();
         IUpdateSyncDataService updateDataService = scope.ServiceProvider.GetRequiredService<IUpdateSyncDataService>();
         // add any other data we need for updates (customer PO, etc)
         data = await updateDataService.UpdateSyncData(data);
-        var workerLogger = scope.ServiceProvider.GetRequiredService<ILogger<IUpdateExentaStatusesService>>();
-        workerLogger.LogInformation("Resolving scoped sync workers and starting sync");
-        var scopedWorkers = scope.ServiceProvider.GetRequiredService<IEnumerable<ISyncService>>();
+        _logger.LogInformation("Resolving scoped sync workers and starting sync");
+        var scopedWorkers = scope.ServiceProvider.GetRequiredService<IEnumerable<ISyncService>>().Where(s => s.IsActive);
         var tasks = scopedWorkers.Select(w => w.SyncData(data, _milestoneMappings));
         List<SyncDataResults>[] results = await Task.WhenAll(tasks);
-        workerLogger.LogInformation($"Sync workers completed; total updates: {results.Sum(a => a.Count)}");
+        _logger.LogInformation($"Sync workers completed; total updates: {results.Sum(a => a.Count)}");
         
         // and return a single list of results
         return results.SelectMany(r => r).ToList();
@@ -108,18 +106,19 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         DateTime cutoff = GetLastCheckedUtc(minutes, shopfloorCode);
 
         var query =
-            from m in context.MileStones.AsNoTracking()
-            where m.Name != "READY"
-            join po in context.ProductOperations.AsNoTracking()
-                on m.Id equals po.MileStoneId
-            join wo in context.WorkOrders.AsNoTracking()
-                on po.ProductId equals wo.ProductId
+            from u in context.Units.AsNoTracking()
             join t in context.Transactions.AsNoTracking()
-                on new { wo.Id, po.OperationId } equals new { Id = t.WorkorderId, t.OperationId }
-            where t.DateTime >= cutoff
-            join u in context.Units.AsNoTracking()
-                on t.UnitId equals u.Id
-            orderby t.Created descending
+                on u.Id equals t.UnitId into ut
+            from t in ut.DefaultIfEmpty()              // translates the LEFT JOIN
+            join wo in context.WorkOrders.AsNoTracking()
+                on t.WorkorderId equals wo.Id
+            join po in context.ProductOperations.AsNoTracking()
+                on new { OperationId = t.OperationId, wo.ProductId }
+                equals new { po.OperationId, po.ProductId }
+            join m in context.MileStones.AsNoTracking()
+                on po.MileStoneId equals m.Id
+            where m.Name.ToLower() != "ready" && t.DateTime > cutoff
+            orderby t.Created descending              // optional – matches your original SQL
             select new UpdateData
             {
                 AlphaNumId = u.AlphaNumId,
@@ -133,7 +132,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         try
         {
             List<UpdateData> results = await query.Distinct().ToListAsync();
-            return results;
+            return results.GroupBy(x => x.AlphaNumId).Select(g => g.First()).ToList(); // ensure distinct by SerialNumber   
         }
         catch (Exception ex)
         {
@@ -148,6 +147,13 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         return timestamp?.LastChecked ?? DateTime.UtcNow.AddMinutes(-minutes);
     }
 
+    /// <summary>
+    /// update the last timestamp for the specified Shopfloor DB
+    /// only called if we had any data; no data for this DB should not call this method
+    /// </summary>
+    /// <param name="shopfloorCode">shoploor code</param>
+    /// <param name="lastCheck">last timestamp of the last record</param>
+    /// <returns></returns>
     public async Task UpdateSFCTimestamp(string shopfloorCode, DateTime lastCheck)
     {
         SFCTimestamp? timestamp = _sfcTimestamps.FirstOrDefault(s => s.Location == shopfloorCode);

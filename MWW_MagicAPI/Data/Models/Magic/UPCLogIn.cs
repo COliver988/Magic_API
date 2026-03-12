@@ -21,7 +21,7 @@ public class UPCLogIn
     [Key]
 	[Column(TypeName = "decimal(18, 0)")]
 	 [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-	public decimal RecordID {get;set;}
+	public long RecordID {get;set;}
 	public string? TrackNotes {get;set;}
 	public string? BADGE_ID {get;set;}
 	public string? SYSTEM_NAME {get;set;}        

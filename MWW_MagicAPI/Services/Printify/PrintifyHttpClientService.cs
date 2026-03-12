@@ -5,7 +5,7 @@ namespace MWW_Api.Services.Peeps.PrintifyServices;
 
 public class PrintifyHttpClientService : IPrintifyHttpClientService
 {
-    private HttpClient _httpClient;
+    private readonly HttpClient _httpClient;
     private ILogger<PrintifyHttpClientService> _logger;
     public PrintifyHttpClientService(HttpClient httpClient,
         ILogger<PrintifyHttpClientService> logger)
@@ -18,8 +18,8 @@ public class PrintifyHttpClientService : IPrintifyHttpClientService
     {
         List<PrintifyUpdatePayload> payload = GeneratePayload(order, status);
         string jsonPayload = JsonConvert.SerializeObject(payload);
-        _httpClient.BaseAddress = new Uri(_httpClient.BaseAddress.ToString().Replace("{PRINTIFY-ORDER-ID}", order.UniqueId));
-        var results = await _httpClient.PostAsJsonAsync("", payload);
+        var url = _httpClient.BaseAddress!.ToString().Replace("{PRINTIFY-ORDER-ID}", order.UniqueId);
+        var results = await _httpClient.PostAsJsonAsync(url, payload);
         if (results.IsSuccessStatusCode)
         {
             return true;

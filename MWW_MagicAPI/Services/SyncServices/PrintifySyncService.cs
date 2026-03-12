@@ -5,6 +5,7 @@ using MWW_Api.Services.Peeps.PrintifyServices;
 using MWW_MagicAPI.Data.Contexts;
 using MWW_MagicAPI.Data.Models.DTO;
 using MWW_MagicAPI.Data.RepositoryContracts.Peeps.Printify;
+using Newtonsoft.Json;
 using static MWW_Api.Models.Peeps.Printify.PrintifyShared;
 
 namespace MWW_MagicAPI.Services.SyncServices;
@@ -31,6 +32,8 @@ public class PrintifySyncService : ISyncService
         _logger = logger;
     }
 
+    public bool IsActive => false;
+
     public async Task<List<SyncDataResults>> SyncData(
         List<UpdateData> data,
         List<MilestoneMapper> milestoneMappings)
@@ -39,6 +42,7 @@ public class PrintifySyncService : ISyncService
             return new List<SyncDataResults>();
 
         // remove any non-Printify POs
+        var x = data.Where(d => d.VendorPO == "69956e90ec0a72679e04810b").FirstOrDefault();
         data = await FilterPrintifyOrders(data);
 
         return await UpdatePrintifyStatuses(data, milestoneMappings);
@@ -91,10 +95,14 @@ public class PrintifySyncService : ISyncService
 
         foreach (UpdateData update in updates)
         {
+            if (update.VendorPO == "69956e90ec0a72679e04810b")
+            {
+                var hello = "";
+            }
             string? newStatus = mappings.FirstOrDefault(s => s.FS_Status == update.FS_Status)?.PrintifyStatus!;
             if (newStatus != null)
             {
-                if (await ProcessUpdate(update.VendorPO, newStatus))
+                if (await ProcessUpdate(update.VendorPO, newStatus, update))
                 {
                     updated.Add(new SyncDataResults
                     {
@@ -118,22 +126,32 @@ public class PrintifySyncService : ISyncService
     /// <param name="status"></param>
     /// <returns>true if success, false if not</returns>
     /// TODO: if it fails, how do we handle the update later? missed updates?
-    private async Task<bool> ProcessUpdate(string po, string status)
+    private async Task<bool> ProcessUpdate(string po, string status, UpdateData update)
     {
         bool results = true;
-        string[] statuses = status.Split(',');
+        string[] statuses = status.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
         await using var transaction = await _context.Database.BeginTransactionAsync();
+        PrintifyOrder? order = await _orderRepository.GetByOrderPOAsync(po);
+        if (order == null) return false;
+
+        // first see if this needs updating; if already set to this status we do not update anything
+        results = await _orderRepository.UpdateAsync(order.UniqueId, statuses.Last());
+        if (!results) return false;
+
         try
         {
             foreach (string newStatus in statuses)
             {
-                results = await _orderRepository.UpdateAsync(po, newStatus.Trim());
-                if (results)
-                {
-                    results = await CreateEvents(po, status);
-                }
+                List<PrintifyEvent> addedEvents = await CreateEvents(order, newStatus, update);
+                results = await SendNotifications(order, addedEvents);
             }
-            await transaction.CommitAsync();
+            if (results)
+                await transaction.CommitAsync();
+            else
+            {
+                _logger.LogError($"Failed to update Printify order {po} to status {status}");
+                await transaction.RollbackAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -147,19 +165,17 @@ public class PrintifySyncService : ISyncService
     /// <summary>
     /// create the event for the PO; may have to create earlier events if missing
     /// </summary>
-    /// <param name="po"></param>
-    /// <param name="status"></param>
-    /// <returns></returns>
-    private async Task<bool> CreateEvents(string po, string status)
+    /// <param name="order">printify order</param>
+    /// <param name="status">specific status</param>
+    /// <returns>list of Pritify events added</returns>
+    private async Task<List<PrintifyEvent>> CreateEvents(PrintifyOrder order, string status, UpdateData update)
     {
-        PrintifyOrder? order = await _orderRepository.GetByOrderPOAsync(po);
-        if (order == null) return false;
         List<PrintifyEvent> events = await _eventRepository.GetAllByOrder(order.Id);
         if (events.Any(e => e.Action == status))
-            return true; // event already exists
-        List<PrintifyEvent> newEvents = GenerateEvents(order, events, status);
+            return new List<PrintifyEvent>(); // event already exists
+        List<PrintifyEvent> newEvents = GenerateEvents(order, events, status, update);
         List<PrintifyEvent> addedEvents = await _eventRepository.AddEvents(newEvents);
-        return await SendNotifications(order, addedEvents);
+        return addedEvents;
     }
 
     /// <summary>
@@ -167,7 +183,6 @@ public class PrintifySyncService : ISyncService
     /// </summary>
     /// <param name="addedEvents"></param>
     /// <returns></returns>
-    /// <exception cref="NotImplementedException"></exception>
     private async Task<bool> SendNotifications(PrintifyOrder order, List<PrintifyEvent> addedEvents)
     {
         bool results = true;
@@ -186,7 +201,7 @@ public class PrintifySyncService : ISyncService
     /// <param name="existingEvents"></param>
     /// <param name="status"></param>
     /// <returns></returns>
-    private List<PrintifyEvent> GenerateEvents(PrintifyOrder order, List<PrintifyEvent> existingEvents, string status)
+    private List<PrintifyEvent> GenerateEvents(PrintifyOrder order, List<PrintifyEvent> existingEvents, string status, UpdateData update)
     {
         List<PrintifyEvent> events = new List<PrintifyEvent>();
         Array statuses = Enum.GetValues(typeof(PrintifyStatuses));
@@ -196,13 +211,27 @@ public class PrintifySyncService : ISyncService
             string currentStatus = statuses.GetValue(i)!.ToString()!;
             if (existingEvents.Any(e => e.Action == currentStatus))
                 continue; // already have this event
+            var details = "{}";
+            if (status == "shipped")
+                if (string.IsNullOrEmpty(update.TrackingInfo))
+                    continue;
+                else
+                {
+                    var shippingDetails = new
+                    {
+                        TrackingNumber = update.TrackingInfo,
+                        Carrier = order.ShippingMethod.Carrier
+                    };
+                    details = JsonConvert.SerializeObject(shippingDetails);
+                }
             events.Add(new PrintifyEvent()
             {
                 OrderId = order.Id,
                 Action = currentStatus,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
-                AffectedItems = order.PrintifyItems.Select(i => i.UniqueId).ToArray()
+                AffectedItems = order.PrintifyItems.Select(i => i.UniqueId).ToArray(),
+                Details = details
             });
         }
         return events;

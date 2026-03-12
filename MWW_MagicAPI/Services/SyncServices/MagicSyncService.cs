@@ -2,6 +2,7 @@
 using MWW_Api.Config;
 using MWW_Api.Models.Magic;
 using MWW_MagicAPI.Data.Models.DTO;
+using Newtonsoft.Json;
 using Prometheus;
 
 namespace MWW_MagicAPI.Services.SyncServices;
@@ -11,7 +12,8 @@ public class MagicSyncService : ISyncService
     private readonly ILogger<MagicSyncService> _logger;
     private readonly IServiceScopeFactory _serviceScopeFactory;
     private List<MilestoneMapper> _mappings;
-    private List<string> excludedStatuses = new List<string>() { "shipped", "cancelled", "cancel", "ready", "pods", "toqc", "stship" };
+    // note: last time checked this was the proper casing
+    private List<string> excludedStatuses = new List<string>() { "shipped", "Cancelled", "cancel", "READY", "PODS", "ToQC", "ToShip" };
     string[] _progression = new string[]
     {
         "printed", "Printed", "PRINTED", "ToTenter", "AtTenter",
@@ -19,6 +21,8 @@ public class MagicSyncService : ISyncService
         "ToCut", "toCut", "ToPack", "ToPB", "ToProc", "ToFinishing",
         "InPB", "ToSew", "InSew", "ToCircleTack", "ToShip", "cancel"
     };
+
+    public bool IsActive => true;
 
     public MagicSyncService(
         ILogger<MagicSyncService> logger,
@@ -35,6 +39,17 @@ public class MagicSyncService : ISyncService
         return await UpdateMagicStatuses(data);
     }
 
+    /// <summary>
+    /// Updates the status of legacy records based on the provided update data and returns the results of the
+    /// synchronization operation.
+    /// </summary>
+    /// <remarks>The method processes updates concurrently, with a maximum of five operations running in
+    /// parallel. Only records whose target status represents progression beyond their current status are updated.
+    /// Errors encountered during processing are logged but do not interrupt the overall operation.</remarks>
+    /// <param name="data">A list of update data items, each specifying the serial number, alphanumeric ID, and milestone name used to
+    /// determine the target status for each legacy record.</param>
+    /// <returns>A list of synchronization results indicating the outcome of each status update operation. The list may be empty
+    /// if no updates were performed.</returns>
     public async Task<List<SyncDataResults>> UpdateMagicStatuses(List<UpdateData> data)
     {
         List<LegacyData> updateOrders = new(); // will contain legacy rows with Status set to target status
@@ -46,9 +61,13 @@ public class MagicSyncService : ISyncService
             await semaphore.WaitAsync();
             try
             {
-                LegacyData? current = await LoadLegacyData(toUpdate.SerialNumber);
+                LegacyData? current = await LoadLegacyData(toUpdate.SerialNumber, toUpdate.AlphaNumId);
                 if (current != null)
                 {
+                    if (current.Status != null && excludedStatuses.Any(s => string.Equals(s, current.Status, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        _logger.LogInformation("Skipping PO {Po} with status {Status} as it is in the excluded list.", current.Po, current.Status);
+                    }
                     int currentIdx = Array.FindIndex(_progression, s => string.Equals(s, current.Status, StringComparison.OrdinalIgnoreCase));
 
                     string newStatus = _mappings
@@ -88,7 +107,7 @@ public class MagicSyncService : ISyncService
     /// </summary>
     /// <param name="po"></param>
     /// <returns></returns>
-    public async Task<LegacyData?> LoadLegacyData(string po)
+    public async Task<LegacyData?> LoadLegacyData(string po, string alphanumId)
     {
         using var timer = HistogramMetrics.LegacyLoadDuration
             .WithLabels(nameof(LoadLegacyData))
@@ -97,13 +116,15 @@ public class MagicSyncService : ISyncService
         using var scope = _serviceScopeFactory.CreateScope();
         var magicContext = scope.ServiceProvider.GetRequiredService<MagicDbContext>();
 
-        var loweredStatuses = excludedStatuses.Select(s => s.ToLower()).ToList();
+        string batchID = alphanumId.Split('_')[0];
+        bool pl = int.TryParse(alphanumId.Split('_')[1], out int printedOrder);
 
         var query =
             from dpd in magicContext.DyePrintDetails.AsNoTracking()
-            where dpd.PO == po && !loweredStatuses.Contains(dpd.Status.ToLower())
+            where dpd.PO == po && !excludedStatuses.Contains(dpd.Status)
+              && dpd.BatchID == batchID && dpd.printedOrder == printedOrder
             join dp in magicContext.DapPartners.AsNoTracking().Where(x => x.PO == po)
-                on dpd.PO equals dp.PO
+             on dpd.PO equals dp.PO
             select new LegacyData
             {
                 Po = dpd.PO,
@@ -112,7 +133,8 @@ public class MagicSyncService : ISyncService
                 Status = dpd.Status,
                 UserId = dp.CC_APPROVED,
                 LineNumber = dpd.Ln_No.ToString(),
-                BatchSeq = dpd.BatchID + "_" + dpd.PrintOrder
+                AlphaNumId = alphanumId,
+                BatchSeq = $"{dpd.BatchID}_{dpd.printedOrder}"
             };
 
         return await query.FirstOrDefaultAsync();
@@ -151,12 +173,13 @@ public class MagicSyncService : ISyncService
             // 3. Persist all changes to the database at once
             // EF Core wraps SaveChangesAsync in its own internal transaction, 
             // but BeginTransactionAsync ensures nothing is committed until we say so.
-            //await magicContext.SaveChangesAsync();
+            await magicContext.SaveChangesAsync();
 
             // 4. Commit the transaction to the database
-            //await transaction.CommitAsync();
+            await transaction.CommitAsync();
 
-            _logger.LogInformation("Successfully updated {Count} records in Magic DB.", detailsUpdated);
+            var json = JsonConvert.SerializeObject(detailsUpdated, Formatting.Indented);
+            _logger.LogInformation("Successfully updated {Count} records in Magic DB.", json);
             return results;
         }
         catch (Exception ex)
@@ -172,51 +195,48 @@ public class MagicSyncService : ISyncService
     {
         List<LegacyData> updatedDetails = new();
 
-        // Build a PO -> target status map for fast lookup
-        var poToTarget = updateOrders
-            .GroupBy(u => u.Po)
-            .ToDictionary(g => g.Key, g => g.First().Status, StringComparer.OrdinalIgnoreCase);
+        // 1. Create a composite lookup key: "PO-LineNumber"
+        // This prevents updating Line 2 when only Line 1 was intended.
+        var updateLookup = updateOrders
+            .ToDictionary(
+                u => $"{u.Po}_{u.LnNo}",
+                u => u,
+                StringComparer.OrdinalIgnoreCase
+            );
 
         try
         {
-            // Fetch all matching DyePrintDetails in a single query
-            var pos = poToTarget.Keys.ToList();
+            // 2. Extract POs to minimize the initial fetch
+            var pos = updateOrders.Select(u => u.Po).Distinct().ToList();
+
+            // 3. Fetch records from DB
             var details = await magicContext.DyePrintDetails
                 .Where(d => pos.Contains(d.PO))
                 .ToListAsync();
 
-            if (details.Count == 0)
-                return updatedDetails;
+            if (details.Count == 0) return updatedDetails;
 
-            // Update each entity's status (and any audit columns if present)
-            var utcNow = DateTime.UtcNow;
             foreach (var detail in details)
             {
-                if (!poToTarget.TryGetValue(detail.PO, out var targetStatus))
-                    continue;
+                // 4. Match using the composite key (PO + Line Number)
+                string key = $"{detail.PO}_{detail.Ln_No}";
 
-                // Only set when different — avoids unnecessary writes
-                if (!string.Equals(detail.Status, targetStatus, StringComparison.Ordinal))
+                if (updateLookup.TryGetValue(key, out var targetUpdate))
                 {
-                    detail.Status = targetStatus;
-                    updatedDetails.Add(updateOrders.FirstOrDefault(u =>
-                        string.Equals(u.Po, detail.PO, StringComparison.OrdinalIgnoreCase) &&
-                        u.LnNo == detail.Ln_No));
+                    // 5. Only update if the status is actually changing
+                    if (!string.Equals(detail.Status, targetUpdate.Status, StringComparison.OrdinalIgnoreCase))
+                    {
+                        detail.Status = targetUpdate.Status;
+                        updatedDetails.Add(targetUpdate);
+                    }
                 }
             }
 
-            // Get orders that were NOT updated
-            updatedDetails = updatedDetails.Where(d => d != null).ToList();
-            var notUpdatedOrders = updateOrders
-                .Where(order => !updatedDetails.Any(detail =>
-                    string.Equals(detail.Po, order.Po, StringComparison.OrdinalIgnoreCase) &&
-                    detail.LnNo == order.LnNo))
-                .ToList();
-            return updatedDetails.Where(d => d != null).ToList();
+            return updatedDetails;
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Error updating DyePrintDetails: {ex.Message}");
+            _logger.LogError(ex, "Error updating DyePrintDetails specifically by Line Number.");
             return new List<LegacyData>();
         }
     }
@@ -236,15 +256,20 @@ public class MagicSyncService : ISyncService
                 CO_NUMBER = entry.Co,
                 CUST_ID = entry.UserId,
                 USERID = entry.Status.ToUpper(),
+                REQ_DATE = entry.Status,
                 SHIP_VIA = entry.LineNumber,
-                CreateDate = DateTime.UtcNow,
-                LOG_DATE = DateTime.UtcNow.ToString("MMM dd yyyy h:mmtt"),
+                CreateDate = DateTime.Now,
+                LOG_DATE = DateTime.Now.ToString("MMM dd yyyy h:mmtt"),
                 SYSTEM_NAME = "MWWMagicAPI",
+                TrackNotes = $"{entry.BatchSeq} => {entry.Status}"
             }).ToList();
 
             batchRecords = await DedupLegacy(batchRecords, magicContext);
 
             magicContext.UPCLogIns.AddRange(batchRecords);
+            var json = JsonConvert.SerializeObject(batchRecords, Formatting.Indented);
+            _logger.LogInformation("UPC log records prepared:\n{Json}", json);
+
 
             return updateData.Select(d => new SyncDataResults
             {
@@ -276,6 +301,7 @@ public class MagicSyncService : ISyncService
                 existingLog.CUST_PO_NO == newLog.CUST_PO_NO &&
                 existingLog.CO_NUMBER == newLog.CO_NUMBER &&
                 existingLog.USERID == newLog.USERID &&
+                existingLog.TrackNotes == newLog.TrackNotes &&
                 existingLog.SHIP_VIA == newLog.SHIP_VIA))
             .ToList();
         return dedupedRecords;
