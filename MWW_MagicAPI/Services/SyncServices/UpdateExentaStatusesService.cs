@@ -36,7 +36,7 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
     // TODO: track last timestamp in DBs for update span to only update what is new
     [Queue("datasync")]
     [DisableConcurrentExecution(timeoutInSeconds: 600)]
-    public async Task<List<SyncDataResults>> UpdateExentaStatuses(int minutes)
+    public async Task<List<SyncDataResults>> UpdateExentaStatuses(string minutes)
     {
         // load the milestones mappings
         _milestoneMappings = await _milestoneMapperRepository.GetAllMilestoneMappingsAsync();
@@ -45,7 +45,13 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         _sfcTimestamps = await _sfcTimestampRepository.GetAllAsync();
 
         // get all data to update from shopfloor DBs
-        List<UpdateData> data = await CollectData(minutes);
+        int timeBack = 15;
+        if (minutes != null)
+        {
+           int.TryParse(minutes, out int mins);
+           timeBack = mins;
+        }
+        List<UpdateData> data = await CollectData(timeBack);
         if (data.Count == 0)
         {
             _logger.LogInformation("No Exenta status updates found.");

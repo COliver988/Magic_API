@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using MWW_Api.Models.Peeps;
 using MWW_Api.Models.Peeps.Printify;
 
 namespace MWW_MagicAPI.Data.Contexts;
@@ -12,6 +13,7 @@ public class PeepsDbContext : DbContext
     public DbSet<PrintifyOrder> PrintifyOrders { get; set; }
     public DbSet<PrintifyEvent> PrintifyEvents { get; set; }
     public DbSet<PrintifyItem> PrintifyItems { get; set; }
+    public DbSet<HangfireJob> HangfireJobs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
