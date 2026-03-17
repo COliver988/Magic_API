@@ -45,12 +45,8 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
         _sfcTimestamps = await _sfcTimestampRepository.GetAllAsync();
 
         // get all data to update from shopfloor DBs
-        int timeBack = 15;
-        if (minutes != null)
-        {
-           int.TryParse(minutes, out int mins);
-           timeBack = mins;
-        }
+        int timeBack = getMinutesBack(minutes);
+
         List<UpdateData> data = await CollectData(timeBack);
         if (data.Count == 0)
         {
@@ -177,5 +173,22 @@ public class UpdateExentaStatusesService : IUpdateExentaStatusesService
             };
             await _sfcTimestampRepository.UpdateAsync(newTimestamp);
         }
+    }
+
+    /// <summary>
+    /// convert the possible string minutes
+    /// string as the hangfire parameters are all strings; if null or invalid, default to 30 minutes back
+    /// </summary>
+    /// <param name="minutes"></param>
+    /// <returns></returns>
+    private int getMinutesBack(string minutes)
+    {
+        int timeBack = 30;
+        if (minutes != null)
+        {
+            int.TryParse(minutes, out int mins);
+            timeBack = mins;
+        }
+        return timeBack;
     }
 }
