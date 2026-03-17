@@ -1,8 +1,9 @@
 using Hangfire;
 using Microsoft.EntityFrameworkCore;
-using MWW_Api.Config;
+using Microsoft.Extensions.Options;
 using MWW_Api.Services;
 using MWW_MagicAPI.Data.Contexts;
+using System.Collections;
 
 public class HangfireJobService : IRecurringJobService
 {
@@ -31,11 +32,11 @@ public class HangfireJobService : IRecurringJobService
         foreach (var job in activeJobs)
         {
             // 1. Resolve the Type from the string stored in DB
-            var serviceType = GetTypeFromName(job.ServiceTypeName);
+            var serviceType = GetTypeFromName(job.ServiceTypeName.Trim());
             if (serviceType == null) continue;
 
             // 2. Find the method (usually "Job" or "Execute")
-            var method = serviceType.GetMethod(job.JobName); // Or store method name in DB too
+            var method = serviceType.GetMethod(job.JobName.Trim()); // Or store method name in DB too
             if (method == null) continue;
 
             // 3. Create the Hangfire Job object
@@ -52,6 +53,18 @@ public class HangfireJobService : IRecurringJobService
                 job.CronExpression,
                 new RecurringJobOptions { QueueName = job.Queue }
             );
+
+            /* Note: The above AddOrUpdate method is from Hangfire 1.8+ and allows you to specify a Job object directly.
+                     below is the 2.0 + syntax which will happen
+            _recurringJobs.AddOrUpdate(
+                recurringJobId: job.JobId,
+                job: hangfireJob,
+                cronExpression: job.CronExpression,
+                queue: job.Queue,
+                options: new RecurringJobOptions { }
+             );
+            */
+
         }
     }
 
