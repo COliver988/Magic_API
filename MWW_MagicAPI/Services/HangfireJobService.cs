@@ -48,23 +48,11 @@ public class HangfireJobService : IRecurringJobService
 
             // 4. Register using the non-generic signature
             _recurringJobs.AddOrUpdate(
-                job.JobId,
+                recurringJobId: job.JobId,
                 hangfireJob,
-                job.CronExpression,
+                cronExpression: job.CronExpression,
                 new RecurringJobOptions { QueueName = job.Queue }
             );
-
-            /* Note: The above AddOrUpdate method is from Hangfire 1.8+ and allows you to specify a Job object directly.
-                     below is the 2.0 + syntax which will happen
-            _recurringJobs.AddOrUpdate(
-                recurringJobId: job.JobId,
-                job: hangfireJob,
-                cronExpression: job.CronExpression,
-                queue: job.Queue,
-                options: new RecurringJobOptions { }
-             );
-            */
-
         }
     }
 
